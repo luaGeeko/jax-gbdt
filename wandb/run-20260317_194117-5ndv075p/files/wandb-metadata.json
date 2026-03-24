@@ -1,0 +1,28 @@
+{
+  "os": "macOS-26.3.1-arm64-arm-64bit",
+  "python": "CPython 3.11.14",
+  "startedAt": "2026-03-17T14:11:17.823753Z",
+  "program": "/Users/lua/jax-gbdt/scripts/train_baseline.py",
+  "codePath": "scripts/train_baseline.py",
+  "codePathLocal": "scripts/train_baseline.py",
+  "git": {
+    "remote": "git@github.com:luaGeeko/jax-gbdt.git"
+  },
+  "email": "g24ait2141@iitj.ac.in",
+  "root": "/Users/lua/jax-gbdt",
+  "host": "luas-Mac-Studio.local",
+  "executable": "/Users/lua/jax_lib_tree/bin/python3",
+  "cpu_count": 10,
+  "cpu_count_logical": 10,
+  "disk": {
+    "/": {
+      "total": "494384795648",
+      "used": "160198991872"
+    }
+  },
+  "memory": {
+    "total": "34359738368"
+  },
+  "apple": {},
+  "writerId": "3qjwueeel9zwg0p6o0ecxdl8q0zu1fm0"
+}

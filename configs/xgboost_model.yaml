@@ -1,0 +1,30 @@
+project_name: "jax-gbdt"
+experiment_name: "baseline_xgboost_model"
+
+# dataset details
+dataset:
+  name: "california_housing"
+  num_samples: 20640
+  num_features: 8
+  random_state: 42
+  test_size: 0.2
+
+# training hyperparameters
+xgb_params:
+  max_depth: 3
+  learning_rate: 0.1
+  n_estimators: 5
+  objective: "reg:squarederror"
+  tree_method: "hist"
+  random_state: 42
+  eval_metric: "rmse"
+
+# enable wandb
+wandb:
+  enabled: true
+  mode: online
+
+# path to save the trained model
+paths:
+  checkpoint_dir: "checkpoints/xgboost_model"
+  model_filename: "xgboost_model.json"

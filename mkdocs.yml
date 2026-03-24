@@ -1,0 +1,19 @@
+site_name: JAX Tree Compiler
+site_description: GPU/TPU-optimized tree inference using JAX
+
+theme:
+  name: material
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: [src]
+          options:
+            docstring_style: google
+            show_source: true
+
+nav:
+  - Home: index.md
+  - Parser: parser.md

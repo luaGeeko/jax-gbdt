@@ -1,0 +1,11 @@
+Training XGBoost with max_depth=3...
+Error executing job with overrides: []
+Traceback (most recent call last):
+  File "/Users/lua/jax-gbdt/scripts/train_baseline.py", line 31, in train
+    model.fit(X_train, y_train, eval_set=[(X_test, y_test)], verbose=False, callbacks=[WandbCallback()])
+  File "/Users/lua/jax_lib_tree/lib/python3.11/site-packages/xgboost/core.py", line 751, in inner_f
+    return func(**kwargs)
+           ^^^^^^^^^^^^^^
+TypeError: XGBModel.fit() got an unexpected keyword argument 'callbacks'
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.

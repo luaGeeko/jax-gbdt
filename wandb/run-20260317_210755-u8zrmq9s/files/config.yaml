@@ -1,0 +1,51 @@
+_wandb:
+    value:
+        cli_version: 0.25.1
+        e:
+            2st15xyxk2td66c8ddrhzdj7bay2m7wb:
+                codePath: scripts/train_baseline.py
+                codePathLocal: scripts/train_baseline.py
+                email: g24ait2141@iitj.ac.in
+                executable: /Users/lua/jax_lib_tree/bin/python3
+                git:
+                    remote: git@github.com:luaGeeko/jax-gbdt.git
+                host: luas-Mac-Studio.local
+                os: macOS-26.3.1-arm64-arm-64bit
+                program: /Users/lua/jax-gbdt/scripts/train_baseline.py
+                python: CPython 3.11.14
+                root: /Users/lua/jax-gbdt
+                startedAt: "2026-03-17T15:37:55.689734Z"
+                writerId: 2st15xyxk2td66c8ddrhzdj7bay2m7wb
+        m: []
+        python_version: 3.11.14
+        t:
+            "1":
+                - 5
+                - 6
+                - 50
+                - 53
+            "2":
+                - 5
+                - 6
+                - 50
+                - 53
+            "3":
+                - 13
+                - 16
+                - 31
+            "4": 3.11.14
+            "5": 0.25.1
+            "12": 0.25.1
+            "13": darwin-arm64
+dataset:
+    value: '{''name'': ''california_housing'', ''num_samples'': 20640, ''num_features'': 8, ''random_state'': 42, ''test_size'': 0.2}'
+experiment_name:
+    value: baseline_xgboost_model
+paths:
+    value: '{''checkpoint_dir'': ''checkpoints/xgboost_model'', ''model_filename'': ''xgboost_model.json''}'
+project_name:
+    value: jax-gbdt
+wandb:
+    value: '{''enabled'': True, ''mode'': ''online''}'
+xgb_params:
+    value: '{''max_depth'': 3, ''learning_rate'': 0.1, ''n_estimators'': 5, ''objective'': ''reg:squarederror'', ''tree_method'': ''hist'', ''random_state'': 42, ''eval_metric'': ''rmse''}'

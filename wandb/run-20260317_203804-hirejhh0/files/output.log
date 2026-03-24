@@ -1,0 +1,13 @@
+> /Users/lua/jax-gbdt/scripts/train_baseline.py(21)train()
+-> print(f"Training XGBoost with max_depth={cfg.xgb_params.max_depth}...")
+Training XGBoost with max_depth=3...
+Error executing job with overrides: []
+Traceback (most recent call last):
+  File "/Users/lua/jax-gbdt/scripts/train_baseline.py", line 33, in train
+    os.makedirs(cfg.paths.checkpoint_dir, exist_ok=True)
+                ^^^^^^^^^^^^^^^^^^^^^^^^
+omegaconf.errors.ConfigAttributeError: Key 'checkpoint_dir' is not in struct
+    full_key: paths.checkpoint_dir
+    object_type=dict
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.

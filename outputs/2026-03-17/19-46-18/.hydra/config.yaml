@@ -1,0 +1,17 @@
+project_name: jax-gbdt
+experiment_name: baseline_xgboost_model
+dataset:
+  name: california_housing
+  num_samples: 20640
+  random_state: 42
+  test_size: 0.2
+xgb_params:
+  max_depth: 3
+  learning_rate: 0.1
+  n_estimators: 5
+  objective: reg:squarederror
+  tree_method: hist
+  random_state: 42
+wandb:
+  enabled: true
+  mode: online

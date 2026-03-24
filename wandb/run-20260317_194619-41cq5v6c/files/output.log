@@ -1,0 +1,19 @@
+> /Users/lua/jax-gbdt/scripts/train_baseline.py(21)train()
+-> print(f"Training XGBoost with max_depth={cfg.xgb_params.max_depth}...")
+*** AttributeError: shape
+<class 'sklearn.utils._bunch.Bunch'>
+(20640, 8)
+Error executing job with overrides: []
+Traceback (most recent call last):
+  File "/Users/lua/jax-gbdt/scripts/train_baseline.py", line 21, in train
+    print(f"Training XGBoost with max_depth={cfg.xgb_params.max_depth}...")
+    ^^^^^
+  File "/opt/homebrew/Cellar/python@3.11/3.11.14_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/bdb.py", line 90, in trace_dispatch
+    return self.dispatch_line(frame)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/opt/homebrew/Cellar/python@3.11/3.11.14_1/Frameworks/Python.framework/Versions/3.11/lib/python3.11/bdb.py", line 115, in dispatch_line
+    if self.quitting: raise BdbQuit
+                      ^^^^^^^^^^^^^
+bdb.BdbQuit
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
