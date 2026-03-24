@@ -1,7 +1,0 @@
-Training XGBoost with max_depth=3...
-[0]	validation_0-rmse:1.08691
-[1]	validation_0-rmse:1.03688
-[2]	validation_0-rmse:0.99337
-[3]	validation_0-rmse:0.95412
-[4]	validation_0-rmse:0.92074
-Model saved to checkpoints/xgboost_model/xgboost_model.json
