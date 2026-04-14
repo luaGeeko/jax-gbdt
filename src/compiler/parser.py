@@ -41,6 +41,7 @@ import os
 import json
 import numpy as np
 import jax.numpy as jnp
+import ast
 from typing import Tuple, Dict
 
 class TreeParser:
@@ -89,12 +90,13 @@ class TreeParser:
         # arrays to hold the data we need for JAX processing
         # we need to loop over each tree, compute the nodes and edges, and store them in a format suitable for JAX processing
         features, left_children, right_children, thresholds = self.preallocate_arrays()
+
         for tree_id, tree in enumerate(self.trees_data):
             tree_num_nodes = len(tree['left_children'])
-            features[tree_id, :tree_num_nodes] = np.array(tree['split_conditions'], dtype=np.int32)
+            features[tree_id, :tree_num_nodes] = np.array(tree['split_indices'], dtype=np.int32)
             left_children[tree_id, :tree_num_nodes] = np.array(tree['left_children'], dtype=np.int32)
             right_children[tree_id, :tree_num_nodes] = np.array(tree['right_children'], dtype=np.int32)
-            thresholds[tree_id, :tree_num_nodes] = np.array(tree['thresholds'], dtype=np.float32)
+            thresholds[tree_id, :tree_num_nodes] = np.array(tree['split_conditions'], dtype=np.float32)
         
         # conver to jax arrays
         self.features = jnp.array(features)
@@ -108,6 +110,8 @@ class TreeParser:
         Returns:
             Dict[str, jnp.ndarray]: dict holding key and the corresponding jax array holding data
         """
+        self.parse_2d_arrays()
+
         return {
             "features": self.features,
             "left_children": self.left_children,
@@ -123,7 +127,9 @@ class TreeParser:
         Returns:
             Dict[str, float]: base score of the model
         """
-        base_score = float(self.model_tree_data['learner']['learner_model_param']['base_score'])
+        base_score = self.model_tree_data['learner']['learner_model_param']['base_score']
+        if isinstance(base_score, str):
+            base_score = ast.literal_eval(base_score)
         return {"base_score": base_score}
 
 
