@@ -34,12 +34,6 @@ from src.compiler.parser import TreeParser
 from scripts.evaluator import BaseLineEvaluator
 import argparse
 
-
-parser = argparse.ArgumentParser(description="No branch infernce")
-parser.add_argument("--batch_size", type=int, default=10, help="batch size to test inference")
-parser.add_argument("--seed", type=int, default=None, help="random seed for reproducibility")
-args = parser.parse_args()
-
 def predict_single_tree(x, tree_feats, tree_thresh, tree_lefts, tree_rights, max_depth):
     """
     Perform inference for a single decision tree on a single input sample.
@@ -255,4 +249,9 @@ def verification_and_evaluation(batch_size: int, seed: Optional[int] = None):
     #print(single_tree_results)
 
 # if __name__ == "__main__":
+# parser = argparse.ArgumentParser(description="No branch infernce")
+# parser.add_argument("--batch_size", type=int, default=10, help="batch size to test inference")
+# parser.add_argument("--seed", type=int, default=None, help="random seed for reproducibility")
+# args = parser.parse_args()
+
 #     verification_and_evaluation(batch_size=args.batch_size, seed=args.seed)
