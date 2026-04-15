@@ -254,5 +254,5 @@ def verification_and_evaluation(batch_size: int, seed: Optional[int] = None):
     #single_tree_results = evaluator.check(X_sample=sample, jax_params=jax_params)
     #print(single_tree_results)
 
-if __name__ == "__main__":
-    verification_and_evaluation(batch_size=args.batch_size, seed=args.seed)
+# if __name__ == "__main__":
+#     verification_and_evaluation(batch_size=args.batch_size, seed=args.seed)
