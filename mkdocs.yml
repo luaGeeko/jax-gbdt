@@ -9,7 +9,9 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
-          paths: [src]
+          paths:
+           - src 
+           - .
           options:
             docstring_style: google
             show_source: true
@@ -17,3 +19,7 @@ plugins:
 nav:
   - Home: index.md
   - Parser: parser.md
+  - Kernels: kernels.md
+  - Evaluation: evaluation.md
+  - Training: training.md
+  - Benchmarking: benchmarking.md

@@ -1,3 +1,33 @@
+"""
+Hydra-based Training Script for XGBoost on California Housing Dataset.
+
+This module provides a configurable training pipeline for an XGBoost regression
+model using Hydra for experiment management. It integrates optional experiment
+tracking via Weights & Biases (W&B) and supports flexible configuration of
+dataset splits, model hyperparameters, and output paths.
+
+Key features:
+    - Configuration-driven training using Hydra
+    - Dataset loading via scikit-learn (California Housing)
+    - Train/test split with reproducibility controls
+    - XGBoost model training with customizable hyperparameters
+    - Optional W&B logging for experiment tracking
+    - Model checkpointing for downstream inference and evaluation
+
+Workflow:
+    1. Load configuration using Hydra
+    2. Initialize W&B (if enabled)
+    3. Fetch and split dataset
+    4. Train XGBoost model with specified parameters
+    5. Save trained model to disk
+    6. Finalize experiment logging
+
+This script is intended for:
+    - Training baseline models for benchmarking
+    - Generating checkpoints for JAX-based inference pipelines
+    - Managing reproducible ML experiments via structured configs
+"""
+
 import os
 import hydra
 import xgboost as xgb
@@ -9,6 +39,41 @@ from wandb.integration.xgboost import WandbCallback
 
 @hydra.main(config_path="../configs", config_name="xgboost_model", version_base=None)
 def train(cfg: DictConfig):
+    """
+    Train an XGBoost regression model using Hydra configuration.
+
+    This function orchestrates the end-to-end training pipeline:
+        - Initializes experiment tracking (optional)
+        - Loads and splits the dataset
+        - Configures and trains an XGBoost model
+        - Saves the trained model for later use
+
+    Configuration is provided via Hydra and includes:
+        - Dataset parameters (test split size, random seed)
+        - XGBoost hyperparameters (depth, learning rate, estimators, etc.)
+        - Logging settings (W&B enable/disable, mode)
+        - Output paths for model checkpointing
+
+    Args:
+        cfg (DictConfig):
+            Hydra configuration object containing:
+                - dataset: parameters for data splitting
+                - xgb_params: model hyperparameters
+                - wandb: experiment tracking configuration
+                - paths: directories and filenames for saving models
+                - project_name / experiment_name: logging metadata
+
+    Outputs:
+        - Trained XGBoost model saved to disk
+        - Console logs for training progress
+        - Optional W&B logs for experiment tracking
+
+    Notes:
+        - Uses scikit-learn's California Housing dataset.
+        - Reproducibility is controlled via `random_state` in both dataset split
+        and model initialization.
+        - W&B logging is enabled only if specified in the configuration.
+    """
     if cfg.wandb.enabled:
         wandb.init(project=cfg.project_name, name=cfg.experiment_name, mode=cfg.wandb.mode, config=dict(cfg))
 
