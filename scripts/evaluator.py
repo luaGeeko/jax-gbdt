@@ -162,6 +162,7 @@ class BaseLineEvaluator:
         mean_error = jnp.mean(diff)
         # check around tolerance
         is_consistent = max_error < atol
+        #is_consistent = False
 
         status = "CONSISTENT" if is_consistent else "MISMATCH"
         print(f"[{status}] Max Error: {max_error:.2e}")
@@ -179,7 +180,7 @@ class BaseLineEvaluator:
         }
     
     @staticmethod
-    def debug_trees(sample_batch: jnp.array, jax_params: Dict, jax_wrapper, model = None, tree_id: Optional[int] = None):
+    def debug_trees(sample_batch: jnp.array, jax_params: Dict, jax_wrapper, real_base_score: float, model = None, tree_id: Optional[int] = None):
         """
     Debug inconsistencies at the individual tree level.
 
@@ -241,6 +242,8 @@ class BaseLineEvaluator:
             xgb_tree_output = booster.predict(xgb.DMatrix(np.array(sample_batch)), iteration_range=(i, i+1), output_margin=True)
             # get jax results
             jax_tree_output = jax_wrapper(sample_batch, single_tree_inference=False, **current_tree_params)
+            # we need to base score otherwise it will through error
+            jax_tree_output = real_base_score + jax_tree_output
             # lets check which tree got us wrong if any
             error = jnp.abs(xgb_tree_output - jax_tree_output).max()
             print(f"Tree {i} | Max Error: {error:.2e}")
@@ -251,8 +254,6 @@ class BaseLineEvaluator:
                 print(f"Thresholds array: {current_tree_params['thresholds']}")
                 print(f"Left Children: {current_tree_params['left_children']}")
                 print(f"Right Children: {current_tree_params['right_children']}")
-                # FIXME: this needs to checked later
-                breakpoint()
                 break
         
         

@@ -76,9 +76,10 @@ def predict_single_tree(x, tree_feats, tree_thresh, tree_lefts, tree_rights, max
         feat_idx = tree_feats[current_node]
         threshold = tree_thresh[current_node]
         # we do arithmetic comparison and not use 'if' statements
-        go_right = x[feat_idx] > threshold
+        go_left = x[feat_idx] < threshold
+        #go_right = x[feat_idx] > threshold
         # select next node if not at leaf node
-        next_node = lax.select(is_leaf, current_node, lax.select(go_right, tree_rights[current_node], tree_lefts[current_node]))
+        next_node = lax.select(is_leaf, current_node, lax.select(go_left, tree_lefts[current_node], tree_rights[current_node]))
         return next_node
         # If we hit a leaf (-1), we stay at that leaf to avoid invalid memory access
         #return lax.select(current_node == -1, -1, next_node)
@@ -176,7 +177,7 @@ def jax_wrapper(X_batch, single_tree_inference: Optional[bool] = True, **params)
         return jax_forest_predict(X_batch, params['features'], params['thresholds'], params['left_children'], params['right_children'], params['max_depth'])
 
 
-def verification_and_evaluation(batch_size: int, seed: Optional[int] = None):
+def verification_and_evaluation(batch_size: int, seed: Optional[int] = None, xla_fusion_analysis: Optional[bool] = False):
     """
     Validate JAX-based inference against a baseline XGBoost model.
 
@@ -217,7 +218,8 @@ def verification_and_evaluation(batch_size: int, seed: Optional[int] = None):
         print('evaluation will be done with reproducibility....')
 
     data_loader = CaliforniaHousingLoader()
-    test_data = data_loader.get_test_samples(n=batch_size)
+    test_data = data_loader.get_test_samples(n=len(data_loader.X_test))
+    print(f"[DEBUG] total entries in x test in data {len(data_loader.X_test)}")
     jax_sample_batch = jnp.array(test_data.values)
     # sample_batch = jnp.array(data_loader.get_test_samples(n=10).values)#
     # print(sample_batch.shape)
@@ -234,7 +236,8 @@ def verification_and_evaluation(batch_size: int, seed: Optional[int] = None):
     
     # evaluate now
     evaluator = BaseLineEvaluator(jax_predict_fn=jax_wrapper)
-    print(f"Verifying Forest Logic for Batch Size: {batch_size}!")
+    real_base_score = evaluator.model.__dict__['base_score'][0]
+    print(f"Verifying Forest Logic for Batch Size: {test_data.shape[0]}!")
     print("--- Running Single Tree Check ---")
     single_results = evaluator.check(X_sample=jax_sample_batch, jax_params=jax_params)
     print(f"Single Tree Consistency: {single_results['is_consistent']}")
@@ -244,14 +247,21 @@ def verification_and_evaluation(batch_size: int, seed: Optional[int] = None):
     forest_results = evaluator.check(X_sample=jax_sample_batch, jax_params=jax_params, single_tree=False)
     print(f"Full Forest Consistency: {forest_results['is_consistent']}")
     if not forest_results['is_consistent']:
-        BaseLineEvaluator.debug_trees(sample_batch=jax_sample_batch, jax_params=jax_params, jax_wrapper=jax_wrapper, model=evaluator.model)
+        BaseLineEvaluator.debug_trees(sample_batch=jax_sample_batch, jax_params=jax_params, jax_wrapper=jax_wrapper, model=evaluator.model, real_base_score=real_base_score)
     #single_tree_results = evaluator.check(X_sample=sample, jax_params=jax_params)
     #print(single_tree_results)
+    if xla_fusion_analysis:
+        lowered = jax.jit(jax_forest_predict).lower(jax_sample_batch, jax_params['features'], jax_params['thresholds'],jax_params['left_children'], jax_params['right_children'], jax_params['max_depth'])
+        hlo_ir = lowered.compiler_ir()
+        with open("hlo_fusion_analysis.txt", "w") as f:
+            f.write(str(hlo_ir))
+        print("HLO IR saved to hlo_fusion_analysis.txt")
+
 
 # if __name__ == "__main__":
-# parser = argparse.ArgumentParser(description="No branch infernce")
-# parser.add_argument("--batch_size", type=int, default=10, help="batch size to test inference")
-# parser.add_argument("--seed", type=int, default=None, help="random seed for reproducibility")
-# args = parser.parse_args()
+#     parser = argparse.ArgumentParser(description="No branch infernce")
+#     parser.add_argument("--batch_size", type=int, default=10, help="batch size to test inference")
+#     parser.add_argument("--seed", type=int, default=None, help="random seed for reproducibility")
+#     args = parser.parse_args()
 
-#     verification_and_evaluation(batch_size=args.batch_size, seed=args.seed)
+#     verification_and_evaluation(batch_size=args.batch_size, seed=args.seed, xla_fusion_analysis=True)
