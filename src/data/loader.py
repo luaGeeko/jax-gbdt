@@ -1,4 +1,5 @@
 import pandas as pd
+from typing import Optional
 from sklearn.datasets import fetch_california_housing
 from sklearn.model_selection import train_test_split
 
@@ -24,7 +25,12 @@ class CaliforniaHousingLoader:
         )
 
     def get_test_samples(self, n: int = 1):
-        samples = self.X_test.sample(n) 
+        # lets switch on stochastic testing
+        if n > self.X_test.shape[0]:
+            print(f"[DATALOADER] number of samples asked by user is more then test size. Stochastic testing is enabled!")
+            samples = self.X_test.sample(n, replace=True)
+        else:
+            samples = self.X_test.sample(n) 
         return samples
 
     def get_random_samples(self, n=1):

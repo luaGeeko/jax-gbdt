@@ -218,7 +218,7 @@ def verification_and_evaluation(batch_size: int, seed: Optional[int] = None, xla
         print('evaluation will be done with reproducibility....')
 
     data_loader = CaliforniaHousingLoader()
-    test_data = data_loader.get_test_samples(n=len(data_loader.X_test))
+    test_data = data_loader.get_test_samples(n=batch_size)
     print(f"[DEBUG] total entries in x test in data {len(data_loader.X_test)}")
     jax_sample_batch = jnp.array(test_data.values)
     # sample_batch = jnp.array(data_loader.get_test_samples(n=10).values)#
