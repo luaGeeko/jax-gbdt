@@ -31,7 +31,7 @@ Design considerations:
 import os
 import xgboost as xgb
 import jax.numpy as jnp
-from typing import Optional, Dict
+from typing import Optional, Dict, Callable
 import numpy as np
 
 class BaseLineEvaluator:
@@ -61,9 +61,14 @@ class BaseLineEvaluator:
         model_base_score (float):
             Base score (intercept) used by the XGBoost model.
     """
-    def __init__(self, jax_predict_fn, pretrained_model_path: Optional[str] = "checkpoints/xgboost_model"):
+    def __init__(self, jax_predict_fn: Optional[Callable] = None, mode: Optional[str] = "no_branch", pretrained_model_path: Optional[str] = "checkpoints/xgboost_model"):
         """
         Initialize and load the pretrained XGBoost model.
+
+        Modes:
+        - "no_branch" (default): uses no branch method for evaluation
+        - "soft": uses soft tree decision making
+        - "lap": uses laplacian matrix decison making 
 
         This method:
             - Instantiates an XGBoost regressor
@@ -77,10 +82,23 @@ class BaseLineEvaluator:
             - Assumes the model is a regressor.
             - Base score extraction may require adjustment for other model types.
         """
+        self.mode_switch = mode
         self.pretrained_model_path = pretrained_model_path
         self.jax_predict_fn = jax_predict_fn
         self.model = None
         self.model_base_score = None
+        # --- lets us first validate mode names are correctly provided ------
+        valid_modes = ["no_branch", "soft", "lap"]
+        if self.mode_switch not in valid_modes:
+            raise ValueError(f"Invalid mode '{self.mode_switch}'. Expected one of {valid_modes}")
+        # --- we need jax wrapper only when no branch mode is selected for evaluation ------ 
+        if self.mode_switch == "no_branch":
+            if jax_predict_fn is None:
+                raise ValueError("jax_predict_fn must be provided when mode='no_branch'")
+            self.jax_predict_fn = jax_predict_fn
+        else:
+            self.jax_predict_fn = jax_predict_fn  # optional (used in compare)
+        
         self.__init_model()
 
     def __init_model(self):
@@ -89,7 +107,7 @@ class BaseLineEvaluator:
         # FIXME: as the model taken currently is Regressor so its ok to take first index for base score
         self.model_base_score = self.model.__dict__['base_score'][0]
 
-    def check(self, X_sample, jax_params, single_tree: Optional[bool] = True, atol=1e-5):
+    def check(self, X_sample, jax_params:Optional[Dict] = None, single_tree: Optional[bool] = True, jax_preds = None, atol=1e-5):
         """
         Compare JAX predictions with baseline XGBoost predictions.
 
@@ -141,14 +159,17 @@ class BaseLineEvaluator:
         # baseline XGBoost model expects NumPy/Pandas form
         X_np = np.array(X_sample)
         # ----- testing -------
-        if single_tree:
+        if single_tree and self.mode_switch == "no_branch":
             booster = self.model.get_booster()
             xgb_preds = booster.predict(xgb.DMatrix(X_np), iteration_range=(0, 1), output_margin=True)
         else:
+            # default way for prediction
             xgb_preds = self.model.predict(X_np)
         print(f"predictions from baseline xgboost mode --- {xgb_preds}")
-        # now we try taking predictions from jaxified
-        jax_preds = self.jax_predict_fn(X_sample, single_tree_inference=single_tree, **jax_params)
+        if self.mode_switch == "no_branch" and jax_preds is None:
+            # now we try taking predictions from jaxified
+            jax_preds = self.jax_predict_fn(X_sample, single_tree_inference=single_tree, **jax_params)
+        assert jax_preds is not None, "Please pass jax predictions..!"
         # add in the computation for correct value to be matched with xgboost model
         jax_corrected_preds = self.model_base_score + jax_preds
         # if single_tree:

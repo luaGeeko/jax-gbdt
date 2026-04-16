@@ -215,7 +215,7 @@ def verification_and_evaluation(batch_size: int, seed: Optional[int] = None, xla
     """
     if seed is not None:
         np.random.seed(seed)
-        print('evaluation will be done with reproducibility....')
+        print('[NOBRANCH] evaluation will be done with reproducibility....')
 
     data_loader = CaliforniaHousingLoader()
     test_data = data_loader.get_test_samples(n=batch_size)
@@ -236,7 +236,7 @@ def verification_and_evaluation(batch_size: int, seed: Optional[int] = None, xla
     
     # evaluate now
     evaluator = BaseLineEvaluator(jax_predict_fn=jax_wrapper)
-    real_base_score = evaluator.model.__dict__['base_score'][0]
+    real_base_score = evaluator.model_base_score
     print(f"Verifying Forest Logic for Batch Size: {test_data.shape[0]}!")
     print("--- Running Single Tree Check ---")
     single_results = evaluator.check(X_sample=jax_sample_batch, jax_params=jax_params)
@@ -258,10 +258,10 @@ def verification_and_evaluation(batch_size: int, seed: Optional[int] = None, xla
         print("HLO IR saved to hlo_fusion_analysis.txt")
 
 
-# if __name__ == "__main__":
-#     parser = argparse.ArgumentParser(description="No branch infernce")
-#     parser.add_argument("--batch_size", type=int, default=10, help="batch size to test inference")
-#     parser.add_argument("--seed", type=int, default=None, help="random seed for reproducibility")
-#     args = parser.parse_args()
+if __name__ == "__main__":
+    parser = argparse.ArgumentParser(description="No branch infernce")
+    parser.add_argument("--batch_size", type=int, default=10, help="batch size to test inference")
+    parser.add_argument("--seed", type=int, default=None, help="random seed for reproducibility")
+    args = parser.parse_args()
 
-#     verification_and_evaluation(batch_size=args.batch_size, seed=args.seed, xla_fusion_analysis=True)
+    verification_and_evaluation(batch_size=args.batch_size, seed=args.seed, xla_fusion_analysis=True)
