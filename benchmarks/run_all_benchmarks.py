@@ -60,7 +60,7 @@ def run_unified_benchmark(batch_sizes: list, n_runs: Optional[int] = 10, tempera
     @jax.jit
     def jit_no_branch(X):
         return jax_forest_predict(X, jax_2d_arrays['features'], jax_2d_arrays['thresholds'], 
-                                  jax_2d_arrays['left_children'], jax_2d_arrays['right_children'], jax_2d_arrays['max_depth'])
+                                  jax_2d_arrays['left_children'], jax_2d_arrays['right_children'], jax_2d_arrays['max_nodes'])
 
     @jax.jit
     def jit_soft_iterative(X):
