@@ -119,4 +119,4 @@ def generate_batch_scaling_plots(csv_path="results/thesis_benchmarks.csv"):
         pass
 
 if __name__ == "__main__":
-    generate_batch_scaling_plots(csv_path="results/benchmarks.csv")
+    generate_batch_scaling_plots()

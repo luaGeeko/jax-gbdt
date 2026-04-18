@@ -7,7 +7,7 @@ from typing import Optional
 import argparse
 import os
 import csv
-import traceback
+import random
 
 from src.data.loader import CaliforniaHousingLoader
 from src.compiler.parser import TreeParser
@@ -17,6 +17,15 @@ from src.compiler.laplacian_parser import LaplacianParser
 from kernels.no_branch_inference import jax_forest_predict
 from kernels.soft_sigmoid_inference import soft_node_activations, calculate_paths_iterative, calculate_paths_dense
 from kernels.laplacian_inference import calculate_laplacian_dense
+
+def set_global_seed(seed: int):
+    """Locks down randomness for absolute thesis reproducibility."""
+    random.seed(seed)
+    np.random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    # JAX is deterministic by default for pure functions, but locking NumPy ensures 
+    # the data tiling and memory layout is perfectly identical on every run.
+    print(f"Global Seed set to: {seed}")
 
 def log_to_csv(filepath: str, data: dict):
     file_exists = os.path.isfile(filepath)
@@ -162,6 +171,9 @@ if __name__ == "__main__":
     parser.add_argument("--batch_sizes", type=int, nargs='+', default=[10000, 50000, 100000, 500000], help="List of batch sizes")
     parser.add_argument("--runs", type=int, default=10)
     parser.add_argument("--log_file", type=str, default="results/thesis_benchmarks.csv")
+    parser.add_argument("--seed", type=int, default=42, help="Global random seed for reproducibility")
     args = parser.parse_args()
+
+    set_global_seed(args.seed)
     
     run_unified_benchmark(batch_sizes=args.batch_sizes, n_runs=args.runs, log_file=args.log_file)

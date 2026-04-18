@@ -78,28 +78,6 @@ def calculate_paths_iterative(left_probs, right_probs, left_children, right_chil
     weighted_leaves = leaf_reach_probs * thresholds
     return jnp.sum(weighted_leaves, axis=(1, 2))
 
-# def calculate_paths_dense(left_probs, right_probs, ancestor_matrix, leaf_weights):
-#     """
-#     Option B: Pure Dense Tensor Math
-#     left_probs: [batch, trees, max_nodes]
-#     ancestor_matrix: [trees, n_leaves, max_nodes] (1=Left, 2=Right, 0=Ignore)
-#     leaf_weights: [trees, n_leaves]
-#     """
-#     # expand probabilities so they can broadcast against the leaves now the shape becomes: [batch, trees, 1, max_nodes]
-#     lp_expanded = jnp.expand_dims(left_probs, axis=2)
-#     rp_expanded = jnp.expand_dims(right_probs, axis=2)
-    
-#     # helps in selecting the correct probability for every node in the path simultaneously, for example
-#     # if Ancestor==1, use P_left and if Ancestor==2, use P_right. If 0, use 1.0 (neutral for multiplication)
-#     path_probs = jnp.where(ancestor_matrix == 1, lp_expanded, jnp.where(ancestor_matrix == 2, rp_expanded, 1.0))
-    
-#     # now Multiply all the probabilities along the path (axis=3 is the nodes)
-#     # Shape becomes: [batch, trees, leaves]
-#     final_leaf_reach = jnp.prod(path_probs, axis=3)
-    
-#     # multiply by leaf weights and sum, Shape becomes: [batch]
-#     return jnp.sum(final_leaf_reach * leaf_weights, axis=(1, 2))
-
 def calculate_paths_dense(left_probs, right_probs, ancestor_matrix, leaf_weights):
     """
     Option B (Optimized for TPU MXU): Pure Dense Tensor Math using Log-Space.
