@@ -78,26 +78,56 @@ def calculate_paths_iterative(left_probs, right_probs, left_children, right_chil
     weighted_leaves = leaf_reach_probs * thresholds
     return jnp.sum(weighted_leaves, axis=(1, 2))
 
+# def calculate_paths_dense(left_probs, right_probs, ancestor_matrix, leaf_weights):
+#     """
+#     Option B: Pure Dense Tensor Math
+#     left_probs: [batch, trees, max_nodes]
+#     ancestor_matrix: [trees, n_leaves, max_nodes] (1=Left, 2=Right, 0=Ignore)
+#     leaf_weights: [trees, n_leaves]
+#     """
+#     # expand probabilities so they can broadcast against the leaves now the shape becomes: [batch, trees, 1, max_nodes]
+#     lp_expanded = jnp.expand_dims(left_probs, axis=2)
+#     rp_expanded = jnp.expand_dims(right_probs, axis=2)
+    
+#     # helps in selecting the correct probability for every node in the path simultaneously, for example
+#     # if Ancestor==1, use P_left and if Ancestor==2, use P_right. If 0, use 1.0 (neutral for multiplication)
+#     path_probs = jnp.where(ancestor_matrix == 1, lp_expanded, jnp.where(ancestor_matrix == 2, rp_expanded, 1.0))
+    
+#     # now Multiply all the probabilities along the path (axis=3 is the nodes)
+#     # Shape becomes: [batch, trees, leaves]
+#     final_leaf_reach = jnp.prod(path_probs, axis=3)
+    
+#     # multiply by leaf weights and sum, Shape becomes: [batch]
+#     return jnp.sum(final_leaf_reach * leaf_weights, axis=(1, 2))
+
 def calculate_paths_dense(left_probs, right_probs, ancestor_matrix, leaf_weights):
     """
-    Option B: Pure Dense Tensor Math
+    Option B (Optimized for TPU MXU): Pure Dense Tensor Math using Log-Space.
     left_probs: [batch, trees, max_nodes]
     ancestor_matrix: [trees, n_leaves, max_nodes] (1=Left, 2=Right, 0=Ignore)
     leaf_weights: [trees, n_leaves]
     """
-    # expand probabilities so they can broadcast against the leaves now the shape becomes: [batch, trees, 1, max_nodes]
-    lp_expanded = jnp.expand_dims(left_probs, axis=2)
-    rp_expanded = jnp.expand_dims(right_probs, axis=2)
+    # 1. Convert to Log-Space (Add small epsilon to prevent log(0))
+    # Shape: [batch, trees, nodes]
+    log_lp = jnp.log(left_probs + 1e-7)
+    log_rp = jnp.log(right_probs + 1e-7)
     
-    # helps in selecting the correct probability for every node in the path simultaneously, for example
-    # if Ancestor==1, use P_left and if Ancestor==2, use P_right. If 0, use 1.0 (neutral for multiplication)
-    path_probs = jnp.where(ancestor_matrix == 1, lp_expanded, jnp.where(ancestor_matrix == 2, rp_expanded, 1.0))
+    # 2. Extract the binary routing masks from the Ancestor Matrix
+    # Shape: [trees, leaves, nodes]
+    A_left = (ancestor_matrix == 1).astype(jnp.float32)
+    A_right = (ancestor_matrix == 2).astype(jnp.float32)
     
-    # now Multiply all the probabilities along the path (axis=3 is the nodes)
-    # Shape becomes: [batch, trees, leaves]
-    final_leaf_reach = jnp.prod(path_probs, axis=3)
+    # 3. The MXU Bottleneck-Breaker: Batched Matrix Multiplication
+    # We multiply the log-probabilities by the routing masks and sum across nodes
+    # 'btn,tln->btl' means (batch, trees, nodes) * (trees, leaves, nodes) -> (batch, trees, leaves)
+    log_path_left = jnp.einsum('btn,tln->btl', log_lp, A_left)
+    log_path_right = jnp.einsum('btn,tln->btl', log_rp, A_right)
     
-    # multiply by leaf weights and sum, Shape becomes: [batch]
+    # 4. Combine and convert back from Log-Space
+    total_log_path = log_path_left + log_path_right
+    final_leaf_reach = jnp.exp(total_log_path)
+    
+    # 5. Multiply by leaf weights and sum
     return jnp.sum(final_leaf_reach * leaf_weights, axis=(1, 2))
 
 def verification_and_evaluation(batch_size: int,  temperature: float, seed: Optional[int] = None, method_type: Optional[str] = 'iterative', xla_fusion_analysis: Optional[bool] = False):
