@@ -19,7 +19,26 @@ from kernels.soft_sigmoid_inference import soft_node_activations, calculate_path
 from kernels.laplacian_inference import calculate_laplacian_dense
 
 def set_global_seed(seed: int):
-    """Locks down randomness for absolute thesis reproducibility."""
+    """
+    Set global random seed for full experiment reproducibility.
+
+    This function ensures deterministic behavior across:
+    - Python's built-in random module
+    - NumPy random number generation
+    - Hash-based operations via environment variables
+
+    Note:
+        JAX operations are already deterministic for pure functions,
+        but setting NumPy and Python seeds ensures identical data
+        preparation and batching across runs.
+
+    Args:
+        seed (int):
+            Random seed value to enforce reproducibility.
+
+    Returns:
+        None
+    """
     random.seed(seed)
     np.random.seed(seed)
     os.environ['PYTHONHASHSEED'] = str(seed)
@@ -28,6 +47,23 @@ def set_global_seed(seed: int):
     print(f"Global Seed set to: {seed}")
 
 def log_to_csv(filepath: str, data: dict):
+    """
+    Append benchmark results to a CSV file.
+
+    If the file does not exist, it is created and a header row is written.
+    Each subsequent call appends a new row of benchmark data.
+
+    Args:
+        filepath (str):
+            Path to the CSV file where results will be stored.
+
+        data (dict):
+            Dictionary containing benchmark metrics. Keys are used
+            as column headers.
+
+    Returns:
+        None
+    """
     file_exists = os.path.isfile(filepath)
     os.makedirs(os.path.dirname(filepath), exist_ok=True)
     with open(filepath, mode='a', newline='') as f:
@@ -37,6 +73,47 @@ def log_to_csv(filepath: str, data: dict):
         writer.writerow(data)
 
 def run_unified_benchmark(batch_sizes: list, n_runs: Optional[int] = 10, temperature: Optional[float] = 100000.0, log_file: str = "results/thesis_benchmarks.csv"):
+    """
+    Run a unified benchmark across multiple tree inference strategies.
+
+    This function evaluates and compares performance across four
+    inference paradigms:
+
+    - Phase 1: Branchless Tree Inference
+    - Phase 2: Soft Tree (Iterative)
+    - Phase 2: Soft Tree (Dense Matrix)
+    - Phase 3: Laplacian-based Inference
+
+    Each method is benchmarked across multiple batch sizes using:
+    - XGBoost CPU baseline
+    - JAX JIT-compiled execution (with XLA)
+
+    The results include latency, throughput (IPS), speedup,
+    and compilation time, and are logged to a CSV file.
+
+    Args:
+        batch_sizes (list):
+            List of batch sizes to evaluate.
+
+        n_runs (int, optional):
+            Number of repeated inference runs per configuration.
+            Used to compute stable latency and throughput.
+            Defaults to 10.
+
+        temperature (float, optional):
+            Temperature parameter for soft routing functions.
+            Higher values approximate hard splits.
+            Defaults to 100000.0.
+
+        log_file (str, optional):
+            Path to the CSV file where benchmark results are stored.
+            Defaults to "results/thesis_benchmarks.csv".
+
+    Returns:
+        None:
+            Prints results to console and logs structured metrics to CSV.
+    """
+
     hardware_name = str(jax.devices()[0].device_kind)
     print(f"--- Hardware Found: {hardware_name} ---")
     
@@ -68,21 +145,57 @@ def run_unified_benchmark(batch_sizes: list, n_runs: Optional[int] = 10, tempera
     # 3. Define JIT Kernels ONCE
     @jax.jit
     def jit_no_branch(X):
+        """
+        JIT-compiled branchless tree inference.
+
+        Args:
+            X (jnp.ndarray): Input feature batch.
+
+        Returns:
+            jnp.ndarray: Predicted outputs.
+        """
         return jax_forest_predict(X, jax_2d_arrays['features'], jax_2d_arrays['thresholds'], 
                                   jax_2d_arrays['left_children'], jax_2d_arrays['right_children'], jax_2d_arrays['max_nodes'])
 
     @jax.jit
     def jit_soft_iterative(X):
+        """
+        JIT-compiled branchless tree inference.
+
+        Args:
+            X (jnp.ndarray): Input feature batch.
+
+        Returns:
+            jnp.ndarray: Predicted outputs.
+        """
         lp, rp = soft_node_activations(X, p2_iter['W'], p2_iter['tau'], temperature=temperature)
         return calculate_paths_iterative(lp, rp, p2_iter['lefts'], p2_iter['rights'], p2_iter['thresholds'])
 
     @jax.jit
     def jit_soft_dense(X):
+        """
+        JIT-compiled soft tree inference using iterative traversal.
+
+        Args:
+            X (jnp.ndarray): Input feature batch.
+
+        Returns:
+            jnp.ndarray: Predicted outputs.
+        """
         lp, rp = soft_node_activations(X, p2_dense['W'], p2_dense['tau'], temperature=temperature)
         return calculate_paths_dense(lp, rp, p2_dense['A'], p2_dense['leaf_wts'])
 
     @jax.jit
     def jit_laplacian_dense(X):
+        """
+        JIT-compiled Laplacian-based tree inference.
+
+        Args:
+            X (jnp.ndarray): Input feature batch.
+
+        Returns:
+            jnp.ndarray: Predicted outputs.
+        """
         lp, rp = soft_node_activations(X, p3_W, p3_tau, temperature=temperature)
         return calculate_laplacian_dense(lp, rp, p3_top['dense_A_template'], p3_top['leaf_weights'])
 
@@ -167,6 +280,18 @@ def run_unified_benchmark(batch_sizes: list, n_runs: Optional[int] = 10, tempera
             print(f"Saved to CSV.")
 
 if __name__ == "__main__":
+    """
+    Command-line interface for running the unified benchmark suite.
+
+    This entry point allows users to:
+    - Specify multiple batch sizes
+    - Control number of benchmark runs
+    - Set output CSV file path
+    - Configure global random seed for reproducibility
+
+    Example:
+        python unified_benchmark.py --batch_sizes 10000 50000 100000 --runs 20
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--batch_sizes", type=int, nargs='+', default=[10000, 50000, 100000, 500000], help="List of batch sizes")
     parser.add_argument("--runs", type=int, default=10)

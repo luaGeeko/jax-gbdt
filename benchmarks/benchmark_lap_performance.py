@@ -12,7 +12,49 @@ from kernels.laplacian_inference import soft_node_activations, calculate_laplaci
 
 def run_laplacian_benchmark(batch_size: int = 10000, n_runs: int = 100, xla_fusion_analysis: bool = False, method_type: str = 'dense'):
     """
-    Benchmark JAX-based Graph Laplacian inference against standard XGBoost CPU inference.
+    Run a performance benchmark comparing JAX-based Laplacian inference
+    against standard XGBoost CPU inference.
+
+    This function evaluates the throughput and latency of a compiled
+    JAX/XLA Laplacian kernel against a traditional XGBoost model using
+    the same dataset. It supports optional extraction of XLA HLO IR
+    for fusion analysis.
+
+    The benchmark consists of:
+    1. Data loading and batching
+    2. XGBoost CPU inference baseline
+    3. JAX JIT-compiled Laplacian inference (dense method)
+    4. Optional HLO IR extraction for kernel inspection
+
+    Args:
+        batch_size (int, optional):
+            Number of samples per inference batch. If larger than the
+            dataset size, data is tiled. Defaults to 10000.
+
+        n_runs (int, optional):
+            Number of repeated inference runs for benchmarking.
+            Used to compute average latency and throughput.
+            Defaults to 100.
+
+        xla_fusion_analysis (bool, optional):
+            If True, extracts and saves the compiled XLA HLO IR
+            for inspection. Defaults to False.
+
+        method_type (str, optional):
+            Type of Laplacian inference method. Currently supported:
+            - 'dense': Dense Laplacian computation
+            - 'sparse': (Not yet implemented)
+
+            Defaults to 'dense'.
+
+    Raises:
+        NotImplementedError:
+            If a method other than 'dense' is selected.
+
+    Returns:
+        None:
+            This function prints benchmark results including latency,
+            throughput (IPS), and relative speedup.
     """
     print(f"--- Hardware Found: {jax.devices()} ---")
     print(f"Preparing Laplacian Benchmark (Batch Size: {batch_size}, Iterations: {n_runs}, Method: {method_type.upper()})...")
@@ -111,6 +153,12 @@ def run_laplacian_benchmark(batch_size: int = 10000, n_runs: int = 100, xla_fusi
         print(f"HLO IR successfully saved to {filename}")
 
 if __name__ == "__main__":
+    """
+    Command-line entry point for running the Laplacian benchmark.
+
+    This script allows users to configure batch size, number of runs,
+    inference method, and optional XLA HLO extraction via CLI arguments.
+    """
     parser = argparse.ArgumentParser(description="Laplacian benchmark")
     parser.add_argument("--batch_size", type=int, default=10000)
     parser.add_argument("--runs", type=int, default=100)

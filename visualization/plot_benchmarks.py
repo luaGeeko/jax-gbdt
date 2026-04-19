@@ -5,6 +5,45 @@ import os
 import numpy as np
 
 def generate_batch_scaling_plots(csv_path="results/thesis_benchmarks.csv"):
+    """
+    Generate interactive batch-scaling visualization dashboard.
+
+    This function reads benchmark results from a CSV file and creates a
+    2×2 grid of bar plots showing throughput scaling across different
+    hardware platforms and inference methods.
+
+    The visualization compares:
+        - XGBoost CPU baseline
+        - Phase 1: No-branch inference
+        - Phase 2: Soft trees (iterative and dense)
+        - Phase 3: Laplacian-based inference
+
+    Each subplot corresponds to a different batch size and shows
+    throughput (in millions of inferences per second) across:
+        - CPU (Colab)
+        - GPU (NVIDIA Tesla T4)
+        - TPU (Google TPU)
+
+    Key features:
+        - Log-scale Y-axis for wide dynamic range
+        - Consistent color mapping across methods
+        - Automatic handling of missing data (N/A, OOM)
+        - Interactive HTML output using Plotly
+
+    Args:
+        csv_path (str, optional):
+            Path to the CSV file containing benchmark results.
+            Defaults to "results/thesis_benchmarks.csv".
+
+    Returns:
+        None:
+            Saves an interactive HTML dashboard and optionally opens it
+            in a web browser.
+
+    Raises:
+        None:
+            Gracefully handles missing files or incomplete data.
+    """
     if not os.path.exists(csv_path):
         print(f"Could not find {csv_path}. Run the benchmark script first!")
         return
@@ -119,4 +158,16 @@ def generate_batch_scaling_plots(csv_path="results/thesis_benchmarks.csv"):
         pass
 
 if __name__ == "__main__":
+    """
+    Command-line entry point for generating benchmark visualization.
+
+    This script reads benchmark CSV results and generates an interactive
+    HTML dashboard visualizing throughput scaling across:
+    - Different hardware platforms
+    - Multiple batch sizes
+    - Various inference methods
+
+    Example:
+        python plot_scaling.py
+    """
     generate_batch_scaling_plots()

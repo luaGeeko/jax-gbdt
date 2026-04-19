@@ -10,7 +10,40 @@ from kernels.no_branch_inference import jax_forest_predict
 
 def run_benchmark(batch_size: int = 10000, n_runs: int = 100, xla_fusion_analysis: bool = False):
     """
-    [... keep your existing docstring ...]
+    Run a performance benchmark comparing JAX-based fused tree inference
+    against standard XGBoost CPU inference.
+
+    This function evaluates inference latency and throughput for:
+    1. A standard XGBoost model running on CPU
+    2. A JAX JIT-compiled branchless tree inference kernel
+
+    The benchmark includes:
+    - Data loading and batching
+    - Model loading and tree parsing into flat arrays
+    - Cold-start (XLA compilation) timing
+    - Warm-start execution timing
+    - Optional extraction of XLA HLO IR for fusion analysis
+
+    Args:
+        batch_size (int, optional):
+            Number of samples per batch. If larger than available test data,
+            the dataset is tiled to match the requested size.
+            Defaults to 10000.
+
+        n_runs (int, optional):
+            Number of repeated inference runs used to compute
+            average latency and throughput.
+            Defaults to 100.
+
+        xla_fusion_analysis (bool, optional):
+            If True, extracts and saves the compiled XLA HLO IR
+            for inspecting kernel fusion behavior.
+            Defaults to False.
+
+    Returns:
+        None:
+            Prints benchmark statistics including latency, throughput (IPS),
+            and relative speedup of JAX over XGBoost.
     """
     print(f"--- Hardware Found: {jax.devices()} ---")
     print(f"Preparing Benchmark (Batch Size: {batch_size}, Iterations: {n_runs})...")
@@ -98,6 +131,17 @@ def run_benchmark(batch_size: int = 10000, n_runs: int = 100, xla_fusion_analysi
         print(f"HLO IR successfully saved to {filename}")
 
 if __name__ == "__main__":
+    """
+    Command-line interface for running the JAX vs XGBoost benchmark.
+
+    This entry point allows users to configure:
+    - Batch size
+    - Number of benchmark runs
+    - Optional XLA fusion analysis
+
+    Example:
+        python benchmark.py --batch_size 20000 --runs 200 --xla_fusion_analysis
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--batch_size", type=int, default=10000)
     parser.add_argument("--runs", type=int, default=100)

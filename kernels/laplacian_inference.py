@@ -11,7 +11,30 @@ from scripts.evaluator import BaseLineEvaluator
 
 def soft_node_activations(X_batch, W, tau, temperature=10.0):
     """
-    Compute split probabilities (Phase 2 core logic remains the same).
+    Compute soft routing probabilities for decision tree splits.
+
+    This function applies a sigmoid-based relaxation of hard decision
+    boundaries, enabling differentiable routing through tree nodes.
+
+    Args:
+        X_batch (jnp.ndarray):
+            Input feature batch of shape (batch_size, num_features).
+
+        W (jnp.ndarray):
+            Node weight tensor used to compute split decisions.
+
+        tau (jnp.ndarray):
+            Threshold values for each node.
+
+        temperature (float, optional):
+            Controls sharpness of the sigmoid function.
+            Higher values approximate hard binary splits.
+            Defaults to 10.0.
+
+    Returns:
+        Tuple[jnp.ndarray, jnp.ndarray]:
+            - Left branch probabilities
+            - Right branch probabilities
     """
     H = jnp.einsum('bf,tfn->btn', X_batch, W)
     left_probabilities = jax.nn.sigmoid(temperature * (tau - H))
@@ -20,8 +43,36 @@ def soft_node_activations(X_batch, W, tau, temperature=10.0):
 
 def calculate_laplacian_dense(left_probs, right_probs, dense_A_template, leaf_weights):
     """
-    Phase 3: Graph Laplacian Inference (Dense Matrix Power / Neumann Series)
-    Treats the tree as a Markov Absorbing Chain.
+    Perform Phase 3 Laplacian-based tree inference using dense matrices.
+
+    This method models the decision tree as a directed acyclic graph (DAG)
+    and propagates probability mass from root to leaves using a Neumann
+    series (iterative matrix diffusion).
+
+    The computation consists of:
+    1. Constructing a probabilistic adjacency matrix A(x)
+    2. Initializing a root signal vector
+    3. Iteratively diffusing signal through the graph
+    4. Aggregating leaf node contributions into final predictions
+
+    Args:
+        left_probs (jnp.ndarray):
+            Probability of taking the left branch at each node.
+
+        right_probs (jnp.ndarray):
+            Probability of taking the right branch at each node.
+
+        dense_A_template (jnp.ndarray):
+            Encodes graph structure:
+            - 1 indicates left edges
+            - 2 indicates right edges
+
+        leaf_weights (jnp.ndarray):
+            Weights associated with leaf nodes for prediction.
+
+    Returns:
+        jnp.ndarray:
+            Predicted outputs for each sample in the batch.
     """
     batch_size, n_trees, max_nodes = left_probs.shape
     
@@ -45,6 +96,18 @@ def calculate_laplacian_dense(left_probs, right_probs, dense_A_template, leaf_we
     # Because it's a DAG, taking the power of A pushes the signal down the tree.
     # We loop max_nodes times to ensure the signal reaches the deepest possible leaf.
     def step_fn(i, val):
+        """
+        Single diffusion step in the Neumann series.
+
+        Args:
+            i (int): Iteration index (unused but required by JAX loop API).
+            val (Tuple[jnp.ndarray, jnp.ndarray]):
+                Current signal and accumulated signal.
+
+        Returns:
+            Tuple[jnp.ndarray, jnp.ndarray]:
+                Updated signal and accumulated signal.
+        """
         current_signal, tot_signal = val
         # Diffuse signal one step forward: bti (signal) * btij (adjacency) -> btj (new signal)
         current_signal = jnp.einsum('bti,btij->btj', current_signal, A)
@@ -59,6 +122,34 @@ def calculate_laplacian_dense(left_probs, right_probs, dense_A_template, leaf_we
 
 
 def verification_and_evaluation(batch_size: int, temperature: float, seed: Optional[int] = None, xla_fusion_analysis: bool = False):
+    """
+    Run verification and evaluation for Laplacian-based inference.
+
+    This function:
+    - Loads test data
+    - Executes Laplacian-based inference
+    - Verifies correctness against baseline evaluator
+    - Optionally extracts XLA HLO IR for fusion analysis
+
+    Args:
+        batch_size (int):
+            Number of samples used for evaluation.
+
+        temperature (float):
+            Sigmoid temperature controlling softness of splits.
+
+        seed (Optional[int], optional):
+            Random seed for reproducibility.
+            Defaults to None.
+
+        xla_fusion_analysis (bool, optional):
+            If True, extracts and saves XLA HLO IR.
+            Defaults to False.
+
+    Returns:
+        None:
+            Prints evaluation results and verification status.
+    """
     if seed is not None:
         np.random.seed(seed)
         print('[LAPLACIAN] Evaluation will be done with reproducibility....')
@@ -99,6 +190,19 @@ def verification_and_evaluation(batch_size: int, temperature: float, seed: Optio
         
         @jax.jit
         def jitted_laplacian_dense(X, W_mat, tau_mat, A_template, leaves):
+            """
+            JIT-compiled Laplacian inference for HLO inspection.
+
+            Args:
+                X (jnp.ndarray): Input batch.
+                W_mat (jnp.ndarray): Routing weights.
+                tau_mat (jnp.ndarray): Thresholds.
+                A_template (jnp.ndarray): Graph adjacency template.
+                leaves (jnp.ndarray): Leaf weights.
+
+            Returns:
+                jnp.ndarray: Predicted outputs.
+            """
             lp, rp = soft_node_activations(X, W_mat, tau_mat, temperature=temperature)
             return calculate_laplacian_dense(lp, rp, A_template, leaves)
 
@@ -116,6 +220,19 @@ def verification_and_evaluation(batch_size: int, temperature: float, seed: Optio
         print(f"HLO IR successfully saved to {filename}")
 
 if __name__ == "__main__":
+    """
+            JIT-compiled Laplacian inference for HLO inspection.
+
+            Args:
+                X (jnp.ndarray): Input batch.
+                W_mat (jnp.ndarray): Routing weights.
+                tau_mat (jnp.ndarray): Thresholds.
+                A_template (jnp.ndarray): Graph adjacency template.
+                leaves (jnp.ndarray): Leaf weights.
+
+            Returns:
+                jnp.ndarray: Predicted outputs.
+            """
     parser = argparse.ArgumentParser(description="Laplacian tree inference")
     parser.add_argument("--batch_size", type=int, default=10, help="batch size to test inference")
     parser.add_argument("--temp", type=float, default=1000000.0, help="temperature for sigmoid (high for hard matching)")

@@ -12,7 +12,46 @@ from kernels.soft_sigmoid_inference import soft_node_activations, calculate_path
 
 def run_soft_benchmark(batch_size: int = 10000, n_runs: int = 100, xla_fusion_analysis: bool = False, method_type: str = 'iterative'):
     """
-    Benchmark JAX-based Soft Tree (Dense Matrix) inference against standard XGBoost CPU inference.
+    Run a benchmark comparing JAX-based soft decision tree inference
+    against standard XGBoost CPU inference.
+
+    This function evaluates the performance of a differentiable
+    (soft-split) tree model implemented in JAX using two routing strategies:
+    iterative traversal and dense matrix-based computation.
+
+    The benchmark includes:
+    1. Data loading and batching
+    2. XGBoost CPU baseline inference
+    3. JAX JIT-compiled soft tree inference (iterative or dense)
+    4. Optional extraction of XLA HLO IR for fusion analysis
+
+    Args:
+        batch_size (int, optional):
+            Number of samples per inference batch. If larger than the
+            available dataset, samples are repeated (tiled).
+            Defaults to 10000.
+
+        n_runs (int, optional):
+            Number of repeated inference runs used to compute
+            average latency and throughput.
+            Defaults to 100.
+
+        xla_fusion_analysis (bool, optional):
+            If True, extracts and saves the compiled XLA HLO IR
+            for inspecting kernel fusion and execution graphs.
+            Defaults to False.
+
+        method_type (str, optional):
+            Soft tree routing method to use:
+            - 'iterative': Explicit traversal-based path computation
+            - 'dense': Matrix-based path aggregation
+
+            Defaults to 'iterative'.
+
+    Returns:
+        None:
+            Prints benchmark results including latency, throughput (IPS),
+            and relative speedup over XGBoost.
     """
     print(f"--- Hardware Found: {jax.devices()} ---")
     print(f"Preparing Soft Tree Benchmark (Batch Size: {batch_size}, Iterations: {n_runs}, Method: {method_type.upper()})...")
@@ -56,11 +95,44 @@ def run_soft_benchmark(batch_size: int = 10000, n_runs: int = 100, xla_fusion_an
     # Define BOTH JIT kernels explicitly
     @jax.jit
     def jitted_soft_iterative_predict(X, W, tau, lefts, rights, thresholds):
+        """
+        JIT-compiled soft tree inference using iterative traversal.
+
+        This method computes soft routing probabilities and explicitly
+        traverses tree paths using left/right child relationships.
+
+        Args:
+            X (jnp.ndarray): Input feature batch.
+            W (jnp.ndarray): Node weight matrix.
+            tau (jnp.ndarray): Threshold parameters.
+            lefts (jnp.ndarray): Left child indices.
+            rights (jnp.ndarray): Right child indices.
+            thresholds (jnp.ndarray): Node thresholds.
+
+        Returns:
+            jnp.ndarray: Predicted outputs.
+        """
         lp, rp = soft_node_activations(X, W, tau, temperature=10.0)
         return calculate_paths_iterative(lp, rp, lefts, rights, thresholds)
 
     @jax.jit
     def jitted_soft_dense_predict(X, W, tau, ancestor_matrix, leaf_weights):
+        """
+        JIT-compiled soft tree inference using dense matrix formulation.
+
+        This method computes routing probabilities and aggregates
+        predictions using a precomputed ancestor matrix.
+
+        Args:
+            X (jnp.ndarray): Input feature batch.
+            W (jnp.ndarray): Node weight matrix.
+            tau (jnp.ndarray): Threshold parameters.
+            ancestor_matrix (jnp.ndarray): Dense ancestor/path matrix.
+            leaf_weights (jnp.ndarray): Leaf prediction weights.
+
+        Returns:
+            jnp.ndarray: Predicted outputs.
+        """
         lp, rp = soft_node_activations(X, W, tau, temperature=10.0)
         return calculate_paths_dense(lp, rp, ancestor_matrix, leaf_weights)
 
@@ -148,6 +220,18 @@ def run_soft_benchmark(batch_size: int = 10000, n_runs: int = 100, xla_fusion_an
         print(f"HLO IR successfully saved to {filename}")
 
 if __name__ == "__main__":
+    """
+    Command-line entry point for running the soft tree benchmark.
+
+    Allows configuration of:
+    - Batch size
+    - Number of benchmark runs
+    - Routing method (iterative or dense)
+    - Optional XLA HLO extraction
+
+    Example:
+        python soft_benchmark.py --batch_size 20000 --runs 200 --method dense
+    """
     parser = argparse.ArgumentParser()
     parser.add_argument("--batch_size", type=int, default=10000)
     parser.add_argument("--runs", type=int, default=100)
