@@ -1,0 +1,3091 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="GPU/TPU-optimized tree inference using JAX">
+      
+      
+      
+      
+        <link rel="prev" href="../training/">
+      
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Benchmarking - JAX Tree Compiler</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#benchmarking" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="JAX Tree Compiler" class="md-header__button md-logo" aria-label="JAX Tree Compiler" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            JAX Tree Compiler
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Benchmarking
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="JAX Tree Compiler" class="md-nav__button md-logo" aria-label="JAX Tree Compiler" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    JAX Tree Compiler
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../parser/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parser
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kernels/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kernels
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../evaluation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Evaluation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../training/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Training
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benchmarking
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benchmarking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#api-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks.benchmark_lap_performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        benchmark_lap_performance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks.benchmark_lap_performance.run_laplacian_benchmark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_laplacian_benchmark
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks.benchmark_no_branch_performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        benchmark_no_branch_performance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks.benchmark_no_branch_performance.run_benchmark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_benchmark
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks.benchmark_soft_performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        benchmark_soft_performance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks.benchmark_soft_performance.run_soft_benchmark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_soft_benchmark
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks.run_all_benchmarks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_all_benchmarks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks.run_all_benchmarks.log_to_csv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        log_to_csv
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks.run_all_benchmarks.run_unified_benchmark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_unified_benchmark
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks.run_all_benchmarks.set_global_seed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        set_global_seed
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#api-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks.benchmark_lap_performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        benchmark_lap_performance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks.benchmark_lap_performance.run_laplacian_benchmark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_laplacian_benchmark
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks.benchmark_no_branch_performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        benchmark_no_branch_performance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks.benchmark_no_branch_performance.run_benchmark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_benchmark
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks.benchmark_soft_performance" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        benchmark_soft_performance
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks.benchmark_soft_performance.run_soft_benchmark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_soft_benchmark
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks.run_all_benchmarks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_all_benchmarks
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks.run_all_benchmarks.log_to_csv" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        log_to_csv
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks.run_all_benchmarks.run_unified_benchmark" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        run_unified_benchmark
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#benchmarks.run_all_benchmarks.set_global_seed" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        set_global_seed
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="benchmarking">Benchmarking</h1>
+<p>This module benchmarks the performance of JAX-based inference against
+standard XGBoost, measuring latency, throughput, and compilation overhead.</p>
+<hr />
+<h2 id="api-reference">API Reference</h2>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="benchmarks.benchmark_lap_performance"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="benchmarks.benchmark_lap_performance.run_laplacian_benchmark" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">run_laplacian_benchmark</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">n_runs</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">xla_fusion_analysis</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">method_type</span><span class="o">=</span><span class="s1">&#39;dense&#39;</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Run a performance benchmark comparing JAX-based Laplacian inference
+against standard XGBoost CPU inference.</p>
+<p>This function evaluates the throughput and latency of a compiled
+JAX/XLA Laplacian kernel against a traditional XGBoost model using
+the same dataset. It supports optional extraction of XLA HLO IR
+for fusion analysis.</p>
+<p>The benchmark consists of:
+1. Data loading and batching
+2. XGBoost CPU inference baseline
+3. JAX JIT-compiled Laplacian inference (dense method)
+4. Optional HLO IR extraction for kernel inspection</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>batch_size</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of samples per inference batch. If larger than the
+dataset size, data is tiled. Defaults to 10000.</p>
+              </div>
+            </td>
+            <td>
+                  <code>10000</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>n_runs</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of repeated inference runs for benchmarking.
+Used to compute average latency and throughput.
+Defaults to 100.</p>
+              </div>
+            </td>
+            <td>
+                  <code>100</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>xla_fusion_analysis</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, extracts and saves the compiled XLA HLO IR
+for inspection. Defaults to False.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>method_type</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Type of Laplacian inference method. Currently supported:
+- 'dense': Dense Laplacian computation
+- 'sparse': (Not yet implemented)</p>
+<p>Defaults to 'dense'.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;dense&#39;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+<p><span class="doc-section-title">Raises:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="NotImplementedError">NotImplementedError</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If a method other than 'dense' is selected.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>None</code></td>            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>This function prints benchmark results including latency,
+throughput (IPS), and relative speedup.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>benchmarks/benchmark_lap_performance.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 13</span>
+<span class="normal"> 14</span>
+<span class="normal"> 15</span>
+<span class="normal"> 16</span>
+<span class="normal"> 17</span>
+<span class="normal"> 18</span>
+<span class="normal"> 19</span>
+<span class="normal"> 20</span>
+<span class="normal"> 21</span>
+<span class="normal"> 22</span>
+<span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">run_laplacian_benchmark</span><span class="p">(</span><span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10000</span><span class="p">,</span> <span class="n">n_runs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">xla_fusion_analysis</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">method_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;dense&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run a performance benchmark comparing JAX-based Laplacian inference</span>
+<span class="sd">    against standard XGBoost CPU inference.</span>
+
+<span class="sd">    This function evaluates the throughput and latency of a compiled</span>
+<span class="sd">    JAX/XLA Laplacian kernel against a traditional XGBoost model using</span>
+<span class="sd">    the same dataset. It supports optional extraction of XLA HLO IR</span>
+<span class="sd">    for fusion analysis.</span>
+
+<span class="sd">    The benchmark consists of:</span>
+<span class="sd">    1. Data loading and batching</span>
+<span class="sd">    2. XGBoost CPU inference baseline</span>
+<span class="sd">    3. JAX JIT-compiled Laplacian inference (dense method)</span>
+<span class="sd">    4. Optional HLO IR extraction for kernel inspection</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        batch_size (int, optional):</span>
+<span class="sd">            Number of samples per inference batch. If larger than the</span>
+<span class="sd">            dataset size, data is tiled. Defaults to 10000.</span>
+
+<span class="sd">        n_runs (int, optional):</span>
+<span class="sd">            Number of repeated inference runs for benchmarking.</span>
+<span class="sd">            Used to compute average latency and throughput.</span>
+<span class="sd">            Defaults to 100.</span>
+
+<span class="sd">        xla_fusion_analysis (bool, optional):</span>
+<span class="sd">            If True, extracts and saves the compiled XLA HLO IR</span>
+<span class="sd">            for inspection. Defaults to False.</span>
+
+<span class="sd">        method_type (str, optional):</span>
+<span class="sd">            Type of Laplacian inference method. Currently supported:</span>
+<span class="sd">            - &#39;dense&#39;: Dense Laplacian computation</span>
+<span class="sd">            - &#39;sparse&#39;: (Not yet implemented)</span>
+
+<span class="sd">            Defaults to &#39;dense&#39;.</span>
+
+<span class="sd">    Raises:</span>
+<span class="sd">        NotImplementedError:</span>
+<span class="sd">            If a method other than &#39;dense&#39; is selected.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        None:</span>
+<span class="sd">            This function prints benchmark results including latency,</span>
+<span class="sd">            throughput (IPS), and relative speedup.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;--- Hardware Found: </span><span class="si">{</span><span class="n">jax</span><span class="o">.</span><span class="n">devices</span><span class="p">()</span><span class="si">}</span><span class="s2"> ---&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Preparing Laplacian Benchmark (Batch Size: </span><span class="si">{</span><span class="n">batch_size</span><span class="si">}</span><span class="s2">, Iterations: </span><span class="si">{</span><span class="n">n_runs</span><span class="si">}</span><span class="s2">, Method: </span><span class="si">{</span><span class="n">method_type</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2">)...&quot;</span><span class="p">)</span>
+
+    <span class="c1"># 1. Data Preparation and Tiling</span>
+    <span class="n">data_loader</span> <span class="o">=</span> <span class="n">CaliforniaHousingLoader</span><span class="p">()</span>
+    <span class="n">test_data</span> <span class="o">=</span> <span class="n">data_loader</span><span class="o">.</span><span class="n">get_test_samples</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">data_loader</span><span class="o">.</span><span class="n">X_test</span><span class="p">))</span>
+    <span class="n">raw_batch</span> <span class="o">=</span> <span class="n">test_data</span><span class="o">.</span><span class="n">values</span>
+
+    <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">raw_batch</span><span class="p">):</span>
+        <span class="n">repeats</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch_size</span> <span class="o">//</span> <span class="nb">len</span><span class="p">(</span><span class="n">raw_batch</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">raw_batch</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">raw_batch</span><span class="p">,</span> <span class="p">(</span><span class="n">repeats</span><span class="p">,</span> <span class="mi">1</span><span class="p">))[:</span><span class="n">batch_size</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">raw_batch</span> <span class="o">=</span> <span class="n">raw_batch</span><span class="p">[:</span><span class="n">batch_size</span><span class="p">]</span>
+
+    <span class="n">np_batch</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">raw_batch</span><span class="p">)</span>
+    <span class="n">jax_batch</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">raw_batch</span><span class="p">)</span>
+
+    <span class="c1"># 2. XGBoost Baseline Setup</span>
+    <span class="n">model_path</span> <span class="o">=</span> <span class="s2">&quot;checkpoints/xgboost_model/xgboost_model.json&quot;</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">xgb</span><span class="o">.</span><span class="n">XGBRegressor</span><span class="p">()</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">load_model</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span>
+
+    <span class="c1"># 3. Laplacian Graph Parsing</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Parsing model into Phase 3 Graph Topology using </span><span class="si">{</span><span class="n">method_type</span><span class="si">}</span><span class="s2"> parser...&quot;</span><span class="p">)</span>
+    <span class="n">laplacian_parser</span> <span class="o">=</span> <span class="n">LaplacianParser</span><span class="p">(</span><span class="n">trained_model_path</span><span class="o">=</span><span class="n">model_path</span><span class="p">)</span>
+    <span class="n">W</span><span class="p">,</span> <span class="n">tau</span> <span class="o">=</span> <span class="n">laplacian_parser</span><span class="o">.</span><span class="n">get_routing_matrices</span><span class="p">()</span>
+    <span class="n">topology</span> <span class="o">=</span> <span class="n">laplacian_parser</span><span class="o">.</span><span class="n">get_graph_topology</span><span class="p">()</span>
+
+    <span class="c1"># Pre-load arrays onto device memory</span>
+    <span class="n">jax_W</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">W</span><span class="p">)</span>
+    <span class="n">jax_tau</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">tau</span><span class="p">)</span>
+    <span class="n">jax_A_dense</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">topology</span><span class="p">[</span><span class="s1">&#39;dense_A_template&#39;</span><span class="p">])</span>
+    <span class="n">jax_leaves</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">topology</span><span class="p">[</span><span class="s1">&#39;leaf_weights&#39;</span><span class="p">])</span>
+
+    <span class="c1"># XGBoost Baseline Benchmark (CPU)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[1/2] Running Standard XGBoost (Baseline)...&quot;</span><span class="p">)</span>
+    <span class="n">xgb_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_runs</span><span class="p">):</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">np_batch</span><span class="p">)</span>
+    <span class="n">xgb_total_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">xgb_start</span>
+    <span class="n">xgb_ips</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">n_runs</span><span class="p">)</span> <span class="o">/</span> <span class="n">xgb_total_time</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;XGBoost Avg Latency: </span><span class="si">{</span><span class="p">(</span><span class="n">xgb_total_time</span><span class="o">/</span><span class="n">n_runs</span><span class="p">)</span><span class="o">*</span><span class="mi">1000</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> ms | Throughput: </span><span class="si">{</span><span class="n">xgb_ips</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2"> IPS&quot;</span><span class="p">)</span>
+
+    <span class="c1"># JAX/XLA Laplacian Kernel Setup</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[2/2] Running JAX Laplacian Fused Kernel (</span><span class="si">{</span><span class="n">method_type</span><span class="si">}</span><span class="s2">)...&quot;</span><span class="p">)</span>
+
+    <span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">jitted_laplacian_dense_predict</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">W_mat</span><span class="p">,</span> <span class="n">tau_mat</span><span class="p">,</span> <span class="n">A_template</span><span class="p">,</span> <span class="n">leaves</span><span class="p">):</span>
+        <span class="c1"># We use a standard temperature of 10.0 for stable execution benchmarking</span>
+        <span class="n">lp</span><span class="p">,</span> <span class="n">rp</span> <span class="o">=</span> <span class="n">soft_node_activations</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">W_mat</span><span class="p">,</span> <span class="n">tau_mat</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="mf">10.0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">calculate_laplacian_dense</span><span class="p">(</span><span class="n">lp</span><span class="p">,</span> <span class="n">rp</span><span class="p">,</span> <span class="n">A_template</span><span class="p">,</span> <span class="n">leaves</span><span class="p">)</span>
+
+    <span class="c1"># --- COLD START (Compilation) ---</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Triggering XLA Compilation (Neumann Series Diffusion)...&quot;</span><span class="p">)</span>
+    <span class="n">comp_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">method_type</span> <span class="o">==</span> <span class="s2">&quot;dense&quot;</span><span class="p">:</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">jitted_laplacian_dense_predict</span><span class="p">(</span>
+            <span class="n">jax_batch</span><span class="p">,</span> <span class="n">jax_W</span><span class="p">,</span> <span class="n">jax_tau</span><span class="p">,</span> <span class="n">jax_A_dense</span><span class="p">,</span> <span class="n">jax_leaves</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">block_until_ready</span><span class="p">()</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">raise</span> <span class="ne">NotImplementedError</span><span class="p">(</span><span class="s2">&quot;Sparse CSR method coming soon!&quot;</span><span class="p">)</span>
+    <span class="n">comp_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">comp_start</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Compilation Time: </span><span class="si">{</span><span class="n">comp_time</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> s&quot;</span><span class="p">)</span>
+
+    <span class="c1"># --- WARM START (Execution) ---</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Running JAX Warm Iterations...&quot;</span><span class="p">)</span>
+    <span class="n">jax_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_runs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">method_type</span> <span class="o">==</span> <span class="s2">&quot;dense&quot;</span><span class="p">:</span>
+            <span class="n">_</span> <span class="o">=</span> <span class="n">jitted_laplacian_dense_predict</span><span class="p">(</span>
+                <span class="n">jax_batch</span><span class="p">,</span> <span class="n">jax_W</span><span class="p">,</span> <span class="n">jax_tau</span><span class="p">,</span> <span class="n">jax_A_dense</span><span class="p">,</span> <span class="n">jax_leaves</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">block_until_ready</span><span class="p">()</span>
+
+    <span class="n">jax_total_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">jax_start</span>
+    <span class="n">jax_ips</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">n_runs</span><span class="p">)</span> <span class="o">/</span> <span class="n">jax_total_time</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;JAX Laplacian Avg Latency: </span><span class="si">{</span><span class="p">(</span><span class="n">jax_total_time</span><span class="o">/</span><span class="n">n_runs</span><span class="p">)</span><span class="o">*</span><span class="mi">1000</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> ms | Throughput: </span><span class="si">{</span><span class="n">jax_ips</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2"> IPS&quot;</span><span class="p">)</span>
+
+    <span class="n">speedup</span> <span class="o">=</span> <span class="n">jax_ips</span> <span class="o">/</span> <span class="n">xgb_ips</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">FINAL VERDICT: JAX Phase 3 (</span><span class="si">{</span><span class="n">method_type</span><span class="si">}</span><span class="s2">) is </span><span class="si">{</span><span class="n">speedup</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">x faster than standard XGBoost.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># --- HLO FUSION ANALYSIS ---</span>
+    <span class="k">if</span> <span class="n">xla_fusion_analysis</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[3/3] Extracting XLA HLO IR for Phase 3 (</span><span class="si">{</span><span class="n">method_type</span><span class="si">}</span><span class="s2">) Matrix Analysis...&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">method_type</span> <span class="o">==</span> <span class="s2">&quot;dense&quot;</span><span class="p">:</span>
+            <span class="n">lowered</span> <span class="o">=</span> <span class="n">jitted_laplacian_dense_predict</span><span class="o">.</span><span class="n">lower</span><span class="p">(</span>
+                <span class="n">jax_batch</span><span class="p">,</span> <span class="n">jax_W</span><span class="p">,</span> <span class="n">jax_tau</span><span class="p">,</span> <span class="n">jax_A_dense</span><span class="p">,</span> <span class="n">jax_leaves</span>
+            <span class="p">)</span>
+
+        <span class="n">hlo_ir</span> <span class="o">=</span> <span class="n">lowered</span><span class="o">.</span><span class="n">compiler_ir</span><span class="p">()</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;laplacian_</span><span class="si">{</span><span class="n">method_type</span><span class="si">}</span><span class="s2">_benchmark_hlo.txt&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">hlo_ir</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;HLO IR successfully saved to </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="benchmarks.benchmark_no_branch_performance"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="benchmarks.benchmark_no_branch_performance.run_benchmark" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">run_benchmark</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">n_runs</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">xla_fusion_analysis</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Run a performance benchmark comparing JAX-based fused tree inference
+against standard XGBoost CPU inference.</p>
+<p>This function evaluates inference latency and throughput for:
+1. A standard XGBoost model running on CPU
+2. A JAX JIT-compiled branchless tree inference kernel</p>
+<p>The benchmark includes:
+- Data loading and batching
+- Model loading and tree parsing into flat arrays
+- Cold-start (XLA compilation) timing
+- Warm-start execution timing
+- Optional extraction of XLA HLO IR for fusion analysis</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>batch_size</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of samples per batch. If larger than available test data,
+the dataset is tiled to match the requested size.
+Defaults to 10000.</p>
+              </div>
+            </td>
+            <td>
+                  <code>10000</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>n_runs</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of repeated inference runs used to compute
+average latency and throughput.
+Defaults to 100.</p>
+              </div>
+            </td>
+            <td>
+                  <code>100</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>xla_fusion_analysis</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, extracts and saves the compiled XLA HLO IR
+for inspecting kernel fusion behavior.
+Defaults to False.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>None</code></td>            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Prints benchmark statistics including latency, throughput (IPS),
+and relative speedup of JAX over XGBoost.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>benchmarks/benchmark_no_branch_performance.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 11</span>
+<span class="normal"> 12</span>
+<span class="normal"> 13</span>
+<span class="normal"> 14</span>
+<span class="normal"> 15</span>
+<span class="normal"> 16</span>
+<span class="normal"> 17</span>
+<span class="normal"> 18</span>
+<span class="normal"> 19</span>
+<span class="normal"> 20</span>
+<span class="normal"> 21</span>
+<span class="normal"> 22</span>
+<span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">run_benchmark</span><span class="p">(</span><span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10000</span><span class="p">,</span> <span class="n">n_runs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">xla_fusion_analysis</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run a performance benchmark comparing JAX-based fused tree inference</span>
+<span class="sd">    against standard XGBoost CPU inference.</span>
+
+<span class="sd">    This function evaluates inference latency and throughput for:</span>
+<span class="sd">    1. A standard XGBoost model running on CPU</span>
+<span class="sd">    2. A JAX JIT-compiled branchless tree inference kernel</span>
+
+<span class="sd">    The benchmark includes:</span>
+<span class="sd">    - Data loading and batching</span>
+<span class="sd">    - Model loading and tree parsing into flat arrays</span>
+<span class="sd">    - Cold-start (XLA compilation) timing</span>
+<span class="sd">    - Warm-start execution timing</span>
+<span class="sd">    - Optional extraction of XLA HLO IR for fusion analysis</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        batch_size (int, optional):</span>
+<span class="sd">            Number of samples per batch. If larger than available test data,</span>
+<span class="sd">            the dataset is tiled to match the requested size.</span>
+<span class="sd">            Defaults to 10000.</span>
+
+<span class="sd">        n_runs (int, optional):</span>
+<span class="sd">            Number of repeated inference runs used to compute</span>
+<span class="sd">            average latency and throughput.</span>
+<span class="sd">            Defaults to 100.</span>
+
+<span class="sd">        xla_fusion_analysis (bool, optional):</span>
+<span class="sd">            If True, extracts and saves the compiled XLA HLO IR</span>
+<span class="sd">            for inspecting kernel fusion behavior.</span>
+<span class="sd">            Defaults to False.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        None:</span>
+<span class="sd">            Prints benchmark statistics including latency, throughput (IPS),</span>
+<span class="sd">            and relative speedup of JAX over XGBoost.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;--- Hardware Found: </span><span class="si">{</span><span class="n">jax</span><span class="o">.</span><span class="n">devices</span><span class="p">()</span><span class="si">}</span><span class="s2"> ---&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Preparing Benchmark (Batch Size: </span><span class="si">{</span><span class="n">batch_size</span><span class="si">}</span><span class="s2">, Iterations: </span><span class="si">{</span><span class="n">n_runs</span><span class="si">}</span><span class="s2">)...&quot;</span><span class="p">)</span>
+
+    <span class="c1"># load data and everything needed for setup</span>
+    <span class="n">data_loader</span> <span class="o">=</span> <span class="n">CaliforniaHousingLoader</span><span class="p">()</span>
+    <span class="n">test_data</span> <span class="o">=</span> <span class="n">data_loader</span><span class="o">.</span><span class="n">get_test_samples</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">data_loader</span><span class="o">.</span><span class="n">X_test</span><span class="p">))</span>
+    <span class="n">raw_batch</span> <span class="o">=</span> <span class="n">test_data</span><span class="o">.</span><span class="n">values</span>
+
+    <span class="c1"># tiling of data</span>
+    <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">raw_batch</span><span class="p">):</span>
+        <span class="n">repeats</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch_size</span> <span class="o">//</span> <span class="nb">len</span><span class="p">(</span><span class="n">raw_batch</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">raw_batch</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">raw_batch</span><span class="p">,</span> <span class="p">(</span><span class="n">repeats</span><span class="p">,</span> <span class="mi">1</span><span class="p">))[:</span><span class="n">batch_size</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">raw_batch</span> <span class="o">=</span> <span class="n">raw_batch</span><span class="p">[:</span><span class="n">batch_size</span><span class="p">]</span>
+
+    <span class="n">np_batch</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">raw_batch</span><span class="p">)</span>
+    <span class="n">jax_batch</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">raw_batch</span><span class="p">)</span>
+
+    <span class="c1"># load model and parse it to get 2d jax arrays</span>
+    <span class="n">model_path</span> <span class="o">=</span> <span class="s2">&quot;checkpoints/xgboost_model/xgboost_model.json&quot;</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">xgb</span><span class="o">.</span><span class="n">XGBRegressor</span><span class="p">()</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">load_model</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span>
+
+    <span class="n">parser</span> <span class="o">=</span> <span class="n">TreeParser</span><span class="p">(</span><span class="n">trained_model_path</span><span class="o">=</span><span class="n">model_path</span><span class="p">)</span>
+    <span class="n">jax_arrays</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">parse</span><span class="p">()</span>
+    <span class="n">meta</span> <span class="o">=</span> <span class="n">parser</span><span class="o">.</span><span class="n">get_metadata</span><span class="p">()</span>
+
+    <span class="c1"># XGBoost Baseline Benchmark (CPU)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[1/2] Running Standard XGBoost (Baseline)...&quot;</span><span class="p">)</span>
+    <span class="n">xgb_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_runs</span><span class="p">):</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">np_batch</span><span class="p">)</span>
+    <span class="n">xgb_total_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">xgb_start</span>
+    <span class="n">xgb_ips</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">n_runs</span><span class="p">)</span> <span class="o">/</span> <span class="n">xgb_total_time</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;XGBoost Avg Latency: </span><span class="si">{</span><span class="p">(</span><span class="n">xgb_total_time</span><span class="o">/</span><span class="n">n_runs</span><span class="p">)</span><span class="o">*</span><span class="mi">1000</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> ms | Throughput: </span><span class="si">{</span><span class="n">xgb_ips</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2"> IPS&quot;</span><span class="p">)</span>
+
+    <span class="c1"># JAX/XLA Benchmark</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[2/2] Running JAX Fused Kernel...&quot;</span><span class="p">)</span>
+    <span class="n">jitted_predict</span> <span class="o">=</span> <span class="n">jax</span><span class="o">.</span><span class="n">jit</span><span class="p">(</span><span class="n">jax_forest_predict</span><span class="p">)</span>
+
+    <span class="c1"># --- COLD START (Compilation) ---</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Triggering XLA Compilation...&quot;</span><span class="p">)</span>
+    <span class="n">comp_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="n">_</span> <span class="o">=</span> <span class="n">jitted_predict</span><span class="p">(</span>
+        <span class="n">jax_batch</span><span class="p">,</span> <span class="n">jax_arrays</span><span class="p">[</span><span class="s1">&#39;features&#39;</span><span class="p">],</span> <span class="n">jax_arrays</span><span class="p">[</span><span class="s1">&#39;thresholds&#39;</span><span class="p">],</span>
+        <span class="n">jax_arrays</span><span class="p">[</span><span class="s1">&#39;left_children&#39;</span><span class="p">],</span> <span class="n">jax_arrays</span><span class="p">[</span><span class="s1">&#39;right_children&#39;</span><span class="p">],</span> 
+        <span class="n">jax_arrays</span><span class="p">[</span><span class="s1">&#39;max_nodes&#39;</span><span class="p">]</span>
+    <span class="p">)</span><span class="o">.</span><span class="n">block_until_ready</span><span class="p">()</span>
+    <span class="n">comp_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">comp_start</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Compilation Time: </span><span class="si">{</span><span class="n">comp_time</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> s&quot;</span><span class="p">)</span>
+
+    <span class="c1"># --- WARM START (Execution) ---</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Running JAX Warm Iterations...&quot;</span><span class="p">)</span>
+    <span class="n">jax_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_runs</span><span class="p">):</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">jitted_predict</span><span class="p">(</span>
+            <span class="n">jax_batch</span><span class="p">,</span> <span class="n">jax_arrays</span><span class="p">[</span><span class="s1">&#39;features&#39;</span><span class="p">],</span> <span class="n">jax_arrays</span><span class="p">[</span><span class="s1">&#39;thresholds&#39;</span><span class="p">],</span>
+            <span class="n">jax_arrays</span><span class="p">[</span><span class="s1">&#39;left_children&#39;</span><span class="p">],</span> <span class="n">jax_arrays</span><span class="p">[</span><span class="s1">&#39;right_children&#39;</span><span class="p">],</span> 
+            <span class="n">jax_arrays</span><span class="p">[</span><span class="s1">&#39;max_nodes&#39;</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">block_until_ready</span><span class="p">()</span>
+    <span class="n">jax_total_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">jax_start</span>
+    <span class="n">jax_ips</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">n_runs</span><span class="p">)</span> <span class="o">/</span> <span class="n">jax_total_time</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;JAX Avg Latency: </span><span class="si">{</span><span class="p">(</span><span class="n">jax_total_time</span><span class="o">/</span><span class="n">n_runs</span><span class="p">)</span><span class="o">*</span><span class="mi">1000</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> ms | Throughput: </span><span class="si">{</span><span class="n">jax_ips</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2"> IPS&quot;</span><span class="p">)</span>
+
+    <span class="n">speedup</span> <span class="o">=</span> <span class="n">jax_ips</span> <span class="o">/</span> <span class="n">xgb_ips</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">FINAL VERDICT: JAX is </span><span class="si">{</span><span class="n">speedup</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">x faster than standard XGBoost on this hardware.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># --- HLO FUSION ANALYSIS ---</span>
+    <span class="k">if</span> <span class="n">xla_fusion_analysis</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[3/3] Extracting XLA HLO IR for Fusion Analysis...&quot;</span><span class="p">)</span>
+        <span class="c1"># We can call .lower() directly on the jitted function we already created</span>
+        <span class="n">lowered</span> <span class="o">=</span> <span class="n">jitted_predict</span><span class="o">.</span><span class="n">lower</span><span class="p">(</span>
+            <span class="n">jax_batch</span><span class="p">,</span> <span class="n">jax_arrays</span><span class="p">[</span><span class="s1">&#39;features&#39;</span><span class="p">],</span> <span class="n">jax_arrays</span><span class="p">[</span><span class="s1">&#39;thresholds&#39;</span><span class="p">],</span>
+            <span class="n">jax_arrays</span><span class="p">[</span><span class="s1">&#39;left_children&#39;</span><span class="p">],</span> <span class="n">jax_arrays</span><span class="p">[</span><span class="s1">&#39;right_children&#39;</span><span class="p">],</span> 
+            <span class="n">jax_arrays</span><span class="p">[</span><span class="s1">&#39;max_nodes&#39;</span><span class="p">]</span>
+        <span class="p">)</span>
+        <span class="n">hlo_ir</span> <span class="o">=</span> <span class="n">lowered</span><span class="o">.</span><span class="n">compiler_ir</span><span class="p">()</span>
+
+        <span class="c1"># Save with a specific name so it doesn&#39;t overwrite the inference analysis</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="s2">&quot;benchmark_hlo_fusion_analysis.txt&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">hlo_ir</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;HLO IR successfully saved to </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="benchmarks.benchmark_soft_performance"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="benchmarks.benchmark_soft_performance.run_soft_benchmark" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">run_soft_benchmark</span><span class="p">(</span><span class="n">batch_size</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> <span class="n">n_runs</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">xla_fusion_analysis</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">method_type</span><span class="o">=</span><span class="s1">&#39;iterative&#39;</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Run a benchmark comparing JAX-based soft decision tree inference
+against standard XGBoost CPU inference.</p>
+<p>This function evaluates the performance of a differentiable
+(soft-split) tree model implemented in JAX using two routing strategies:
+iterative traversal and dense matrix-based computation.</p>
+<p>The benchmark includes:
+1. Data loading and batching
+2. XGBoost CPU baseline inference
+3. JAX JIT-compiled soft tree inference (iterative or dense)
+4. Optional extraction of XLA HLO IR for fusion analysis</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>batch_size</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of samples per inference batch. If larger than the
+available dataset, samples are repeated (tiled).
+Defaults to 10000.</p>
+              </div>
+            </td>
+            <td>
+                  <code>10000</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>n_runs</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of repeated inference runs used to compute
+average latency and throughput.
+Defaults to 100.</p>
+              </div>
+            </td>
+            <td>
+                  <code>100</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>xla_fusion_analysis</code>
+            </td>
+            <td>
+                  <code><span title="bool">bool</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>If True, extracts and saves the compiled XLA HLO IR
+for inspecting kernel fusion and execution graphs.
+Defaults to False.</p>
+              </div>
+            </td>
+            <td>
+                  <code>False</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>method_type</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Soft tree routing method to use:
+- 'iterative': Explicit traversal-based path computation
+- 'dense': Matrix-based path aggregation</p>
+<p>Defaults to 'iterative'.</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;iterative&#39;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>None</code></td>            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Prints benchmark results including latency, throughput (IPS),
+and relative speedup over XGBoost.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>benchmarks/benchmark_soft_performance.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 13</span>
+<span class="normal"> 14</span>
+<span class="normal"> 15</span>
+<span class="normal"> 16</span>
+<span class="normal"> 17</span>
+<span class="normal"> 18</span>
+<span class="normal"> 19</span>
+<span class="normal"> 20</span>
+<span class="normal"> 21</span>
+<span class="normal"> 22</span>
+<span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">run_soft_benchmark</span><span class="p">(</span><span class="n">batch_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">10000</span><span class="p">,</span> <span class="n">n_runs</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">100</span><span class="p">,</span> <span class="n">xla_fusion_analysis</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">method_type</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s1">&#39;iterative&#39;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run a benchmark comparing JAX-based soft decision tree inference</span>
+<span class="sd">    against standard XGBoost CPU inference.</span>
+
+<span class="sd">    This function evaluates the performance of a differentiable</span>
+<span class="sd">    (soft-split) tree model implemented in JAX using two routing strategies:</span>
+<span class="sd">    iterative traversal and dense matrix-based computation.</span>
+
+<span class="sd">    The benchmark includes:</span>
+<span class="sd">    1. Data loading and batching</span>
+<span class="sd">    2. XGBoost CPU baseline inference</span>
+<span class="sd">    3. JAX JIT-compiled soft tree inference (iterative or dense)</span>
+<span class="sd">    4. Optional extraction of XLA HLO IR for fusion analysis</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        batch_size (int, optional):</span>
+<span class="sd">            Number of samples per inference batch. If larger than the</span>
+<span class="sd">            available dataset, samples are repeated (tiled).</span>
+<span class="sd">            Defaults to 10000.</span>
+
+<span class="sd">        n_runs (int, optional):</span>
+<span class="sd">            Number of repeated inference runs used to compute</span>
+<span class="sd">            average latency and throughput.</span>
+<span class="sd">            Defaults to 100.</span>
+
+<span class="sd">        xla_fusion_analysis (bool, optional):</span>
+<span class="sd">            If True, extracts and saves the compiled XLA HLO IR</span>
+<span class="sd">            for inspecting kernel fusion and execution graphs.</span>
+<span class="sd">            Defaults to False.</span>
+
+<span class="sd">        method_type (str, optional):</span>
+<span class="sd">            Soft tree routing method to use:</span>
+<span class="sd">            - &#39;iterative&#39;: Explicit traversal-based path computation</span>
+<span class="sd">            - &#39;dense&#39;: Matrix-based path aggregation</span>
+
+<span class="sd">            Defaults to &#39;iterative&#39;.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        None:</span>
+<span class="sd">            Prints benchmark results including latency, throughput (IPS),</span>
+<span class="sd">            and relative speedup over XGBoost.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;--- Hardware Found: </span><span class="si">{</span><span class="n">jax</span><span class="o">.</span><span class="n">devices</span><span class="p">()</span><span class="si">}</span><span class="s2"> ---&quot;</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Preparing Soft Tree Benchmark (Batch Size: </span><span class="si">{</span><span class="n">batch_size</span><span class="si">}</span><span class="s2">, Iterations: </span><span class="si">{</span><span class="n">n_runs</span><span class="si">}</span><span class="s2">, Method: </span><span class="si">{</span><span class="n">method_type</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2">)...&quot;</span><span class="p">)</span>
+
+    <span class="c1"># 1. Data Preparation and Tiling</span>
+    <span class="n">data_loader</span> <span class="o">=</span> <span class="n">CaliforniaHousingLoader</span><span class="p">()</span>
+    <span class="n">test_data</span> <span class="o">=</span> <span class="n">data_loader</span><span class="o">.</span><span class="n">get_test_samples</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">data_loader</span><span class="o">.</span><span class="n">X_test</span><span class="p">))</span>
+    <span class="n">raw_batch</span> <span class="o">=</span> <span class="n">test_data</span><span class="o">.</span><span class="n">values</span>
+
+    <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">raw_batch</span><span class="p">):</span>
+        <span class="n">repeats</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch_size</span> <span class="o">//</span> <span class="nb">len</span><span class="p">(</span><span class="n">raw_batch</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span>
+        <span class="n">raw_batch</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">raw_batch</span><span class="p">,</span> <span class="p">(</span><span class="n">repeats</span><span class="p">,</span> <span class="mi">1</span><span class="p">))[:</span><span class="n">batch_size</span><span class="p">]</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">raw_batch</span> <span class="o">=</span> <span class="n">raw_batch</span><span class="p">[:</span><span class="n">batch_size</span><span class="p">]</span>
+
+    <span class="n">np_batch</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">raw_batch</span><span class="p">)</span>
+    <span class="n">jax_batch</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">raw_batch</span><span class="p">)</span>
+
+    <span class="c1"># 2. XGBoost Baseline Setup</span>
+    <span class="n">model_path</span> <span class="o">=</span> <span class="s2">&quot;checkpoints/xgboost_model/xgboost_model.json&quot;</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">xgb</span><span class="o">.</span><span class="n">XGBRegressor</span><span class="p">()</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">load_model</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span>
+
+    <span class="c1"># 3. Soft Tree Matrix Parsing</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Parsing model into Phase 2 Routing Matrices using </span><span class="si">{</span><span class="n">method_type</span><span class="si">}</span><span class="s2"> parser...&quot;</span><span class="p">)</span>
+    <span class="n">soft_parser</span> <span class="o">=</span> <span class="n">SoftParser</span><span class="p">(</span><span class="n">trained_model_path</span><span class="o">=</span><span class="n">model_path</span><span class="p">)</span>
+    <span class="n">routing_matrices</span> <span class="o">=</span> <span class="n">soft_parser</span><span class="o">.</span><span class="n">routing_matrices</span><span class="p">(</span><span class="n">method_type</span><span class="o">=</span><span class="n">method_type</span><span class="p">)</span>
+
+    <span class="c1"># XGBoost Baseline Benchmark (CPU)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[1/2] Running Standard XGBoost (Baseline)...&quot;</span><span class="p">)</span>
+    <span class="n">xgb_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_runs</span><span class="p">):</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">np_batch</span><span class="p">)</span>
+    <span class="n">xgb_total_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">xgb_start</span>
+    <span class="n">xgb_ips</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">n_runs</span><span class="p">)</span> <span class="o">/</span> <span class="n">xgb_total_time</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;XGBoost Avg Latency: </span><span class="si">{</span><span class="p">(</span><span class="n">xgb_total_time</span><span class="o">/</span><span class="n">n_runs</span><span class="p">)</span><span class="o">*</span><span class="mi">1000</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> ms | Throughput: </span><span class="si">{</span><span class="n">xgb_ips</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2"> IPS&quot;</span><span class="p">)</span>
+
+    <span class="c1"># JAX/XLA Soft Kernel Setup</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[2/2] Running JAX Soft Tree Fused Kernel (</span><span class="si">{</span><span class="n">method_type</span><span class="si">}</span><span class="s2">)...&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Define BOTH JIT kernels explicitly</span>
+    <span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">jitted_soft_iterative_predict</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">lefts</span><span class="p">,</span> <span class="n">rights</span><span class="p">,</span> <span class="n">thresholds</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        JIT-compiled soft tree inference using iterative traversal.</span>
+
+<span class="sd">        This method computes soft routing probabilities and explicitly</span>
+<span class="sd">        traverses tree paths using left/right child relationships.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            X (jnp.ndarray): Input feature batch.</span>
+<span class="sd">            W (jnp.ndarray): Node weight matrix.</span>
+<span class="sd">            tau (jnp.ndarray): Threshold parameters.</span>
+<span class="sd">            lefts (jnp.ndarray): Left child indices.</span>
+<span class="sd">            rights (jnp.ndarray): Right child indices.</span>
+<span class="sd">            thresholds (jnp.ndarray): Node thresholds.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            jnp.ndarray: Predicted outputs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">lp</span><span class="p">,</span> <span class="n">rp</span> <span class="o">=</span> <span class="n">soft_node_activations</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="mf">10.0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">calculate_paths_iterative</span><span class="p">(</span><span class="n">lp</span><span class="p">,</span> <span class="n">rp</span><span class="p">,</span> <span class="n">lefts</span><span class="p">,</span> <span class="n">rights</span><span class="p">,</span> <span class="n">thresholds</span><span class="p">)</span>
+
+    <span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">jitted_soft_dense_predict</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">ancestor_matrix</span><span class="p">,</span> <span class="n">leaf_weights</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        JIT-compiled soft tree inference using dense matrix formulation.</span>
+
+<span class="sd">        This method computes routing probabilities and aggregates</span>
+<span class="sd">        predictions using a precomputed ancestor matrix.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            X (jnp.ndarray): Input feature batch.</span>
+<span class="sd">            W (jnp.ndarray): Node weight matrix.</span>
+<span class="sd">            tau (jnp.ndarray): Threshold parameters.</span>
+<span class="sd">            ancestor_matrix (jnp.ndarray): Dense ancestor/path matrix.</span>
+<span class="sd">            leaf_weights (jnp.ndarray): Leaf prediction weights.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            jnp.ndarray: Predicted outputs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">lp</span><span class="p">,</span> <span class="n">rp</span> <span class="o">=</span> <span class="n">soft_node_activations</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">W</span><span class="p">,</span> <span class="n">tau</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="mf">10.0</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">calculate_paths_dense</span><span class="p">(</span><span class="n">lp</span><span class="p">,</span> <span class="n">rp</span><span class="p">,</span> <span class="n">ancestor_matrix</span><span class="p">,</span> <span class="n">leaf_weights</span><span class="p">)</span>
+
+    <span class="c1"># --- COLD START (Compilation) ---</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Triggering XLA Compilation (cuBLAS dot_general mapping)...&quot;</span><span class="p">)</span>
+    <span class="n">comp_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="k">if</span> <span class="n">method_type</span> <span class="o">==</span> <span class="s2">&quot;iterative&quot;</span><span class="p">:</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">jitted_soft_iterative_predict</span><span class="p">(</span>
+            <span class="n">jax_batch</span><span class="p">,</span> 
+            <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;W&#39;</span><span class="p">],</span> 
+            <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;tau&#39;</span><span class="p">],</span> 
+            <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;lefts&#39;</span><span class="p">],</span> 
+            <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;rights&#39;</span><span class="p">],</span> 
+            <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;thresholds&#39;</span><span class="p">]</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">block_until_ready</span><span class="p">()</span>
+    <span class="k">elif</span> <span class="n">method_type</span> <span class="o">==</span> <span class="s2">&quot;dense&quot;</span><span class="p">:</span>
+        <span class="n">_</span> <span class="o">=</span> <span class="n">jitted_soft_dense_predict</span><span class="p">(</span>
+            <span class="n">jax_batch</span><span class="p">,</span> 
+            <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;W&#39;</span><span class="p">],</span> 
+            <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;tau&#39;</span><span class="p">],</span> 
+            <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">],</span>
+            <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;leaf_wts&#39;</span><span class="p">]</span>  <span class="c1"># Ensure this matches your SoftParser dictionary key exactly!</span>
+        <span class="p">)</span><span class="o">.</span><span class="n">block_until_ready</span><span class="p">()</span>
+    <span class="n">comp_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">comp_start</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Compilation Time: </span><span class="si">{</span><span class="n">comp_time</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> s&quot;</span><span class="p">)</span>
+
+    <span class="c1"># --- WARM START (Execution) ---</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Running JAX Warm Iterations...&quot;</span><span class="p">)</span>
+    <span class="n">jax_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+    <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_runs</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">method_type</span> <span class="o">==</span> <span class="s2">&quot;iterative&quot;</span><span class="p">:</span>
+            <span class="n">_</span> <span class="o">=</span> <span class="n">jitted_soft_iterative_predict</span><span class="p">(</span>
+                <span class="n">jax_batch</span><span class="p">,</span> 
+                <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;W&#39;</span><span class="p">],</span> 
+                <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;tau&#39;</span><span class="p">],</span> 
+                <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;lefts&#39;</span><span class="p">],</span> 
+                <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;rights&#39;</span><span class="p">],</span> 
+                <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;thresholds&#39;</span><span class="p">]</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">block_until_ready</span><span class="p">()</span>
+        <span class="k">elif</span> <span class="n">method_type</span> <span class="o">==</span> <span class="s2">&quot;dense&quot;</span><span class="p">:</span>
+            <span class="n">_</span> <span class="o">=</span> <span class="n">jitted_soft_dense_predict</span><span class="p">(</span>
+                <span class="n">jax_batch</span><span class="p">,</span> 
+                <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;W&#39;</span><span class="p">],</span> 
+                <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;tau&#39;</span><span class="p">],</span> 
+                <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">],</span>
+                <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;leaf_wts&#39;</span><span class="p">]</span>
+            <span class="p">)</span><span class="o">.</span><span class="n">block_until_ready</span><span class="p">()</span>
+
+    <span class="n">jax_total_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">jax_start</span>
+    <span class="n">jax_ips</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">n_runs</span><span class="p">)</span> <span class="o">/</span> <span class="n">jax_total_time</span>
+
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;JAX Soft Tree Avg Latency: </span><span class="si">{</span><span class="p">(</span><span class="n">jax_total_time</span><span class="o">/</span><span class="n">n_runs</span><span class="p">)</span><span class="o">*</span><span class="mi">1000</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> ms | Throughput: </span><span class="si">{</span><span class="n">jax_ips</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2"> IPS&quot;</span><span class="p">)</span>
+
+    <span class="n">speedup</span> <span class="o">=</span> <span class="n">jax_ips</span> <span class="o">/</span> <span class="n">xgb_ips</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">FINAL VERDICT: JAX Phase 2 (</span><span class="si">{</span><span class="n">method_type</span><span class="si">}</span><span class="s2">) is </span><span class="si">{</span><span class="n">speedup</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">x faster than standard XGBoost.&quot;</span><span class="p">)</span>
+
+    <span class="c1"># --- HLO FUSION ANALYSIS ---</span>
+    <span class="k">if</span> <span class="n">xla_fusion_analysis</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">[3/3] Extracting XLA HLO IR for Phase 2 (</span><span class="si">{</span><span class="n">method_type</span><span class="si">}</span><span class="s2">) Matrix Analysis...&quot;</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">method_type</span> <span class="o">==</span> <span class="s2">&quot;iterative&quot;</span><span class="p">:</span>
+            <span class="n">lowered</span> <span class="o">=</span> <span class="n">jitted_soft_iterative_predict</span><span class="o">.</span><span class="n">lower</span><span class="p">(</span>
+                <span class="n">jax_batch</span><span class="p">,</span> 
+                <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;W&#39;</span><span class="p">],</span> 
+                <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;tau&#39;</span><span class="p">],</span> 
+                <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;lefts&#39;</span><span class="p">],</span> 
+                <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;rights&#39;</span><span class="p">],</span> 
+                <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;thresholds&#39;</span><span class="p">]</span>
+            <span class="p">)</span>
+        <span class="k">elif</span> <span class="n">method_type</span> <span class="o">==</span> <span class="s2">&quot;dense&quot;</span><span class="p">:</span>
+            <span class="n">lowered</span> <span class="o">=</span> <span class="n">jitted_soft_dense_predict</span><span class="o">.</span><span class="n">lower</span><span class="p">(</span>
+                <span class="n">jax_batch</span><span class="p">,</span> 
+                <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;W&#39;</span><span class="p">],</span> 
+                <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;tau&#39;</span><span class="p">],</span> 
+                <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">],</span>
+                <span class="n">routing_matrices</span><span class="p">[</span><span class="s1">&#39;leaf_wts&#39;</span><span class="p">]</span>
+            <span class="p">)</span>
+
+        <span class="n">hlo_ir</span> <span class="o">=</span> <span class="n">lowered</span><span class="o">.</span><span class="n">compiler_ir</span><span class="p">()</span>
+
+        <span class="c1"># Save uniquely based on the method</span>
+        <span class="n">filename</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;soft_</span><span class="si">{</span><span class="n">method_type</span><span class="si">}</span><span class="s2">_benchmark_hlo.txt&quot;</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filename</span><span class="p">,</span> <span class="s2">&quot;w&quot;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="n">f</span><span class="o">.</span><span class="n">write</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">hlo_ir</span><span class="p">))</span>
+        <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;HLO IR successfully saved to </span><span class="si">{</span><span class="n">filename</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="benchmarks.run_all_benchmarks"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="benchmarks.run_all_benchmarks.log_to_csv" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">log_to_csv</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">data</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Append benchmark results to a CSV file.</p>
+<p>If the file does not exist, it is created and a header row is written.
+Each subsequent call appends a new row of benchmark data.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>filepath</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to the CSV file where results will be stored.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>data</code>
+            </td>
+            <td>
+                  <code><span title="dict">dict</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dictionary containing benchmark metrics. Keys are used
+as column headers.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>None</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>benchmarks/run_all_benchmarks.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span>
+<span class="normal">61</span>
+<span class="normal">62</span>
+<span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span>
+<span class="normal">72</span>
+<span class="normal">73</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">log_to_csv</span><span class="p">(</span><span class="n">filepath</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">data</span><span class="p">:</span> <span class="nb">dict</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Append benchmark results to a CSV file.</span>
+
+<span class="sd">    If the file does not exist, it is created and a header row is written.</span>
+<span class="sd">    Each subsequent call appends a new row of benchmark data.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        filepath (str):</span>
+<span class="sd">            Path to the CSV file where results will be stored.</span>
+
+<span class="sd">        data (dict):</span>
+<span class="sd">            Dictionary containing benchmark metrics. Keys are used</span>
+<span class="sd">            as column headers.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">file_exists</span> <span class="o">=</span> <span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">isfile</span><span class="p">(</span><span class="n">filepath</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">makedirs</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">dirname</span><span class="p">(</span><span class="n">filepath</span><span class="p">),</span> <span class="n">exist_ok</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">filepath</span><span class="p">,</span> <span class="n">mode</span><span class="o">=</span><span class="s1">&#39;a&#39;</span><span class="p">,</span> <span class="n">newline</span><span class="o">=</span><span class="s1">&#39;&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+        <span class="n">writer</span> <span class="o">=</span> <span class="n">csv</span><span class="o">.</span><span class="n">DictWriter</span><span class="p">(</span><span class="n">f</span><span class="p">,</span> <span class="n">fieldnames</span><span class="o">=</span><span class="n">data</span><span class="o">.</span><span class="n">keys</span><span class="p">())</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">file_exists</span><span class="p">:</span>
+            <span class="n">writer</span><span class="o">.</span><span class="n">writeheader</span><span class="p">()</span>
+        <span class="n">writer</span><span class="o">.</span><span class="n">writerow</span><span class="p">(</span><span class="n">data</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="benchmarks.run_all_benchmarks.run_unified_benchmark" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">run_unified_benchmark</span><span class="p">(</span><span class="n">batch_sizes</span><span class="p">,</span> <span class="n">n_runs</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="mf">100000.0</span><span class="p">,</span> <span class="n">log_file</span><span class="o">=</span><span class="s1">&#39;results/thesis_benchmarks.csv&#39;</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Run a unified benchmark across multiple tree inference strategies.</p>
+<p>This function evaluates and compares performance across four
+inference paradigms:</p>
+<ul>
+<li>Phase 1: Branchless Tree Inference</li>
+<li>Phase 2: Soft Tree (Iterative)</li>
+<li>Phase 2: Soft Tree (Dense Matrix)</li>
+<li>Phase 3: Laplacian-based Inference</li>
+</ul>
+<p>Each method is benchmarked across multiple batch sizes using:
+- XGBoost CPU baseline
+- JAX JIT-compiled execution (with XLA)</p>
+<p>The results include latency, throughput (IPS), speedup,
+and compilation time, and are logged to a CSV file.</p>
+
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>batch_sizes</code>
+            </td>
+            <td>
+                  <code><span title="list">list</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>List of batch sizes to evaluate.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>n_runs</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Number of repeated inference runs per configuration.
+Used to compute stable latency and throughput.
+Defaults to 10.</p>
+              </div>
+            </td>
+            <td>
+                  <code>10</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>temperature</code>
+            </td>
+            <td>
+                  <code><span title="float">float</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Temperature parameter for soft routing functions.
+Higher values approximate hard splits.
+Defaults to 100000.0.</p>
+              </div>
+            </td>
+            <td>
+                  <code>100000.0</code>
+            </td>
+          </tr>
+          <tr class="doc-section-item">
+            <td>
+                <code>log_file</code>
+            </td>
+            <td>
+                  <code><span title="str">str</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Path to the CSV file where benchmark results are stored.
+Defaults to "results/thesis_benchmarks.csv".</p>
+              </div>
+            </td>
+            <td>
+                  <code>&#39;results/thesis_benchmarks.csv&#39;</code>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+<th>Name</th>          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+<td><code>None</code></td>            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Prints results to console and logs structured metrics to CSV.</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>benchmarks/run_all_benchmarks.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span>
+<span class="normal">134</span>
+<span class="normal">135</span>
+<span class="normal">136</span>
+<span class="normal">137</span>
+<span class="normal">138</span>
+<span class="normal">139</span>
+<span class="normal">140</span>
+<span class="normal">141</span>
+<span class="normal">142</span>
+<span class="normal">143</span>
+<span class="normal">144</span>
+<span class="normal">145</span>
+<span class="normal">146</span>
+<span class="normal">147</span>
+<span class="normal">148</span>
+<span class="normal">149</span>
+<span class="normal">150</span>
+<span class="normal">151</span>
+<span class="normal">152</span>
+<span class="normal">153</span>
+<span class="normal">154</span>
+<span class="normal">155</span>
+<span class="normal">156</span>
+<span class="normal">157</span>
+<span class="normal">158</span>
+<span class="normal">159</span>
+<span class="normal">160</span>
+<span class="normal">161</span>
+<span class="normal">162</span>
+<span class="normal">163</span>
+<span class="normal">164</span>
+<span class="normal">165</span>
+<span class="normal">166</span>
+<span class="normal">167</span>
+<span class="normal">168</span>
+<span class="normal">169</span>
+<span class="normal">170</span>
+<span class="normal">171</span>
+<span class="normal">172</span>
+<span class="normal">173</span>
+<span class="normal">174</span>
+<span class="normal">175</span>
+<span class="normal">176</span>
+<span class="normal">177</span>
+<span class="normal">178</span>
+<span class="normal">179</span>
+<span class="normal">180</span>
+<span class="normal">181</span>
+<span class="normal">182</span>
+<span class="normal">183</span>
+<span class="normal">184</span>
+<span class="normal">185</span>
+<span class="normal">186</span>
+<span class="normal">187</span>
+<span class="normal">188</span>
+<span class="normal">189</span>
+<span class="normal">190</span>
+<span class="normal">191</span>
+<span class="normal">192</span>
+<span class="normal">193</span>
+<span class="normal">194</span>
+<span class="normal">195</span>
+<span class="normal">196</span>
+<span class="normal">197</span>
+<span class="normal">198</span>
+<span class="normal">199</span>
+<span class="normal">200</span>
+<span class="normal">201</span>
+<span class="normal">202</span>
+<span class="normal">203</span>
+<span class="normal">204</span>
+<span class="normal">205</span>
+<span class="normal">206</span>
+<span class="normal">207</span>
+<span class="normal">208</span>
+<span class="normal">209</span>
+<span class="normal">210</span>
+<span class="normal">211</span>
+<span class="normal">212</span>
+<span class="normal">213</span>
+<span class="normal">214</span>
+<span class="normal">215</span>
+<span class="normal">216</span>
+<span class="normal">217</span>
+<span class="normal">218</span>
+<span class="normal">219</span>
+<span class="normal">220</span>
+<span class="normal">221</span>
+<span class="normal">222</span>
+<span class="normal">223</span>
+<span class="normal">224</span>
+<span class="normal">225</span>
+<span class="normal">226</span>
+<span class="normal">227</span>
+<span class="normal">228</span>
+<span class="normal">229</span>
+<span class="normal">230</span>
+<span class="normal">231</span>
+<span class="normal">232</span>
+<span class="normal">233</span>
+<span class="normal">234</span>
+<span class="normal">235</span>
+<span class="normal">236</span>
+<span class="normal">237</span>
+<span class="normal">238</span>
+<span class="normal">239</span>
+<span class="normal">240</span>
+<span class="normal">241</span>
+<span class="normal">242</span>
+<span class="normal">243</span>
+<span class="normal">244</span>
+<span class="normal">245</span>
+<span class="normal">246</span>
+<span class="normal">247</span>
+<span class="normal">248</span>
+<span class="normal">249</span>
+<span class="normal">250</span>
+<span class="normal">251</span>
+<span class="normal">252</span>
+<span class="normal">253</span>
+<span class="normal">254</span>
+<span class="normal">255</span>
+<span class="normal">256</span>
+<span class="normal">257</span>
+<span class="normal">258</span>
+<span class="normal">259</span>
+<span class="normal">260</span>
+<span class="normal">261</span>
+<span class="normal">262</span>
+<span class="normal">263</span>
+<span class="normal">264</span>
+<span class="normal">265</span>
+<span class="normal">266</span>
+<span class="normal">267</span>
+<span class="normal">268</span>
+<span class="normal">269</span>
+<span class="normal">270</span>
+<span class="normal">271</span>
+<span class="normal">272</span>
+<span class="normal">273</span>
+<span class="normal">274</span>
+<span class="normal">275</span>
+<span class="normal">276</span>
+<span class="normal">277</span>
+<span class="normal">278</span>
+<span class="normal">279</span>
+<span class="normal">280</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">run_unified_benchmark</span><span class="p">(</span><span class="n">batch_sizes</span><span class="p">:</span> <span class="nb">list</span><span class="p">,</span> <span class="n">n_runs</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="mi">10</span><span class="p">,</span> <span class="n">temperature</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">float</span><span class="p">]</span> <span class="o">=</span> <span class="mf">100000.0</span><span class="p">,</span> <span class="n">log_file</span><span class="p">:</span> <span class="nb">str</span> <span class="o">=</span> <span class="s2">&quot;results/thesis_benchmarks.csv&quot;</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Run a unified benchmark across multiple tree inference strategies.</span>
+
+<span class="sd">    This function evaluates and compares performance across four</span>
+<span class="sd">    inference paradigms:</span>
+
+<span class="sd">    - Phase 1: Branchless Tree Inference</span>
+<span class="sd">    - Phase 2: Soft Tree (Iterative)</span>
+<span class="sd">    - Phase 2: Soft Tree (Dense Matrix)</span>
+<span class="sd">    - Phase 3: Laplacian-based Inference</span>
+
+<span class="sd">    Each method is benchmarked across multiple batch sizes using:</span>
+<span class="sd">    - XGBoost CPU baseline</span>
+<span class="sd">    - JAX JIT-compiled execution (with XLA)</span>
+
+<span class="sd">    The results include latency, throughput (IPS), speedup,</span>
+<span class="sd">    and compilation time, and are logged to a CSV file.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        batch_sizes (list):</span>
+<span class="sd">            List of batch sizes to evaluate.</span>
+
+<span class="sd">        n_runs (int, optional):</span>
+<span class="sd">            Number of repeated inference runs per configuration.</span>
+<span class="sd">            Used to compute stable latency and throughput.</span>
+<span class="sd">            Defaults to 10.</span>
+
+<span class="sd">        temperature (float, optional):</span>
+<span class="sd">            Temperature parameter for soft routing functions.</span>
+<span class="sd">            Higher values approximate hard splits.</span>
+<span class="sd">            Defaults to 100000.0.</span>
+
+<span class="sd">        log_file (str, optional):</span>
+<span class="sd">            Path to the CSV file where benchmark results are stored.</span>
+<span class="sd">            Defaults to &quot;results/thesis_benchmarks.csv&quot;.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        None:</span>
+<span class="sd">            Prints results to console and logs structured metrics to CSV.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+
+    <span class="n">hardware_name</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">jax</span><span class="o">.</span><span class="n">devices</span><span class="p">()[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">device_kind</span><span class="p">)</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;--- Hardware Found: </span><span class="si">{</span><span class="n">hardware_name</span><span class="si">}</span><span class="s2"> ---&quot;</span><span class="p">)</span>
+
+    <span class="c1"># 1. Dataset and Model</span>
+    <span class="n">data_loader</span> <span class="o">=</span> <span class="n">CaliforniaHousingLoader</span><span class="p">()</span>
+    <span class="n">base_raw_batch</span> <span class="o">=</span> <span class="n">data_loader</span><span class="o">.</span><span class="n">get_test_samples</span><span class="p">(</span><span class="n">n</span><span class="o">=</span><span class="nb">len</span><span class="p">(</span><span class="n">data_loader</span><span class="o">.</span><span class="n">X_test</span><span class="p">))</span><span class="o">.</span><span class="n">values</span>
+
+    <span class="n">model_path</span> <span class="o">=</span> <span class="s2">&quot;checkpoints/xgboost_model/xgboost_model.json&quot;</span>
+    <span class="n">model</span> <span class="o">=</span> <span class="n">xgb</span><span class="o">.</span><span class="n">XGBRegressor</span><span class="p">()</span>
+    <span class="n">model</span><span class="o">.</span><span class="n">load_model</span><span class="p">(</span><span class="n">model_path</span><span class="p">)</span>
+
+    <span class="c1"># 2. Parse all topologies ONCE at the start to save time</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;Parsing all mathematical topologies...&quot;</span><span class="p">)</span>
+
+    <span class="c1"># Phase 1: No Branch</span>
+    <span class="n">tree_parser</span> <span class="o">=</span> <span class="n">TreeParser</span><span class="p">(</span><span class="n">trained_model_path</span><span class="o">=</span><span class="n">model_path</span><span class="p">)</span>
+    <span class="n">jax_2d_arrays</span> <span class="o">=</span> <span class="n">tree_parser</span><span class="o">.</span><span class="n">parse</span><span class="p">()</span>
+
+    <span class="c1"># Phase 2: Soft Trees (Iterative &amp; Dense)</span>
+    <span class="n">soft_parser</span> <span class="o">=</span> <span class="n">SoftParser</span><span class="p">(</span><span class="n">trained_model_path</span><span class="o">=</span><span class="n">model_path</span><span class="p">)</span>
+    <span class="n">p2_iter</span> <span class="o">=</span> <span class="n">soft_parser</span><span class="o">.</span><span class="n">routing_matrices</span><span class="p">(</span><span class="n">method_type</span><span class="o">=</span><span class="s1">&#39;iterative&#39;</span><span class="p">)</span>
+    <span class="n">p2_dense</span> <span class="o">=</span> <span class="n">soft_parser</span><span class="o">.</span><span class="n">routing_matrices</span><span class="p">(</span><span class="n">method_type</span><span class="o">=</span><span class="s1">&#39;dense&#39;</span><span class="p">)</span>
+
+    <span class="c1"># Phase 3: Laplacian</span>
+    <span class="n">lap_parser</span> <span class="o">=</span> <span class="n">LaplacianParser</span><span class="p">(</span><span class="n">trained_model_path</span><span class="o">=</span><span class="n">model_path</span><span class="p">)</span>
+    <span class="n">p3_W</span><span class="p">,</span> <span class="n">p3_tau</span> <span class="o">=</span> <span class="n">lap_parser</span><span class="o">.</span><span class="n">get_routing_matrices</span><span class="p">()</span>
+    <span class="n">p3_top</span> <span class="o">=</span> <span class="n">lap_parser</span><span class="o">.</span><span class="n">get_graph_topology</span><span class="p">()</span>
+
+    <span class="c1"># 3. Define JIT Kernels ONCE</span>
+    <span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">jit_no_branch</span><span class="p">(</span><span class="n">X</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        JIT-compiled branchless tree inference.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            X (jnp.ndarray): Input feature batch.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            jnp.ndarray: Predicted outputs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="k">return</span> <span class="n">jax_forest_predict</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">jax_2d_arrays</span><span class="p">[</span><span class="s1">&#39;features&#39;</span><span class="p">],</span> <span class="n">jax_2d_arrays</span><span class="p">[</span><span class="s1">&#39;thresholds&#39;</span><span class="p">],</span> 
+                                  <span class="n">jax_2d_arrays</span><span class="p">[</span><span class="s1">&#39;left_children&#39;</span><span class="p">],</span> <span class="n">jax_2d_arrays</span><span class="p">[</span><span class="s1">&#39;right_children&#39;</span><span class="p">],</span> <span class="n">jax_2d_arrays</span><span class="p">[</span><span class="s1">&#39;max_nodes&#39;</span><span class="p">])</span>
+
+    <span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">jit_soft_iterative</span><span class="p">(</span><span class="n">X</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        JIT-compiled branchless tree inference.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            X (jnp.ndarray): Input feature batch.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            jnp.ndarray: Predicted outputs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">lp</span><span class="p">,</span> <span class="n">rp</span> <span class="o">=</span> <span class="n">soft_node_activations</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">p2_iter</span><span class="p">[</span><span class="s1">&#39;W&#39;</span><span class="p">],</span> <span class="n">p2_iter</span><span class="p">[</span><span class="s1">&#39;tau&#39;</span><span class="p">],</span> <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">calculate_paths_iterative</span><span class="p">(</span><span class="n">lp</span><span class="p">,</span> <span class="n">rp</span><span class="p">,</span> <span class="n">p2_iter</span><span class="p">[</span><span class="s1">&#39;lefts&#39;</span><span class="p">],</span> <span class="n">p2_iter</span><span class="p">[</span><span class="s1">&#39;rights&#39;</span><span class="p">],</span> <span class="n">p2_iter</span><span class="p">[</span><span class="s1">&#39;thresholds&#39;</span><span class="p">])</span>
+
+    <span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">jit_soft_dense</span><span class="p">(</span><span class="n">X</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        JIT-compiled soft tree inference using iterative traversal.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            X (jnp.ndarray): Input feature batch.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            jnp.ndarray: Predicted outputs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">lp</span><span class="p">,</span> <span class="n">rp</span> <span class="o">=</span> <span class="n">soft_node_activations</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">p2_dense</span><span class="p">[</span><span class="s1">&#39;W&#39;</span><span class="p">],</span> <span class="n">p2_dense</span><span class="p">[</span><span class="s1">&#39;tau&#39;</span><span class="p">],</span> <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">calculate_paths_dense</span><span class="p">(</span><span class="n">lp</span><span class="p">,</span> <span class="n">rp</span><span class="p">,</span> <span class="n">p2_dense</span><span class="p">[</span><span class="s1">&#39;A&#39;</span><span class="p">],</span> <span class="n">p2_dense</span><span class="p">[</span><span class="s1">&#39;leaf_wts&#39;</span><span class="p">])</span>
+
+    <span class="nd">@jax</span><span class="o">.</span><span class="n">jit</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">jit_laplacian_dense</span><span class="p">(</span><span class="n">X</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        JIT-compiled Laplacian-based tree inference.</span>
+
+<span class="sd">        Args:</span>
+<span class="sd">            X (jnp.ndarray): Input feature batch.</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            jnp.ndarray: Predicted outputs.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">lp</span><span class="p">,</span> <span class="n">rp</span> <span class="o">=</span> <span class="n">soft_node_activations</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">p3_W</span><span class="p">,</span> <span class="n">p3_tau</span><span class="p">,</span> <span class="n">temperature</span><span class="o">=</span><span class="n">temperature</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">calculate_laplacian_dense</span><span class="p">(</span><span class="n">lp</span><span class="p">,</span> <span class="n">rp</span><span class="p">,</span> <span class="n">p3_top</span><span class="p">[</span><span class="s1">&#39;dense_A_template&#39;</span><span class="p">],</span> <span class="n">p3_top</span><span class="p">[</span><span class="s1">&#39;leaf_weights&#39;</span><span class="p">])</span>
+
+    <span class="n">methods_map</span> <span class="o">=</span> <span class="p">{</span>
+        <span class="s1">&#39;no_branch&#39;</span><span class="p">:</span> <span class="n">jit_no_branch</span><span class="p">,</span>
+        <span class="s1">&#39;soft_iterative&#39;</span><span class="p">:</span> <span class="n">jit_soft_iterative</span><span class="p">,</span>
+        <span class="s1">&#39;soft_dense&#39;</span><span class="p">:</span> <span class="n">jit_soft_dense</span><span class="p">,</span>
+        <span class="s1">&#39;laplacian_dense&#39;</span><span class="p">:</span> <span class="n">jit_laplacian_dense</span>
+    <span class="p">}</span>
+
+    <span class="c1"># 4. Run the Master Loop</span>
+    <span class="k">for</span> <span class="n">method_name</span><span class="p">,</span> <span class="n">kernel_fn</span> <span class="ow">in</span> <span class="n">methods_map</span><span class="o">.</span><span class="n">items</span><span class="p">():</span>
+        <span class="k">for</span> <span class="n">batch_size</span> <span class="ow">in</span> <span class="n">batch_sizes</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="se">\n</span><span class="si">{</span><span class="s1">&#39;=&#39;</span><span class="o">*</span><span class="mi">60</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;BATCH SIZE: </span><span class="si">{</span><span class="n">batch_size</span><span class="si">:</span><span class="s2">,</span><span class="si">}</span><span class="s2"> | METHOD: </span><span class="si">{</span><span class="n">method_name</span><span class="o">.</span><span class="n">upper</span><span class="p">()</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="s1">&#39;=&#39;</span><span class="o">*</span><span class="mi">60</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+
+            <span class="c1"># Tile data</span>
+            <span class="k">if</span> <span class="n">batch_size</span> <span class="o">&gt;</span> <span class="nb">len</span><span class="p">(</span><span class="n">base_raw_batch</span><span class="p">):</span>
+                <span class="n">repeats</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch_size</span> <span class="o">//</span> <span class="nb">len</span><span class="p">(</span><span class="n">base_raw_batch</span><span class="p">))</span> <span class="o">+</span> <span class="mi">1</span>
+                <span class="n">raw_batch</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">tile</span><span class="p">(</span><span class="n">base_raw_batch</span><span class="p">,</span> <span class="p">(</span><span class="n">repeats</span><span class="p">,</span> <span class="mi">1</span><span class="p">))[:</span><span class="n">batch_size</span><span class="p">]</span>
+            <span class="k">else</span><span class="p">:</span>
+                <span class="n">raw_batch</span> <span class="o">=</span> <span class="n">base_raw_batch</span><span class="p">[:</span><span class="n">batch_size</span><span class="p">]</span>
+
+            <span class="n">np_batch</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">raw_batch</span><span class="p">)</span>
+            <span class="n">jax_batch</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">raw_batch</span><span class="p">)</span>
+
+            <span class="c1"># --- Baseline CPU Math ---</span>
+            <span class="n">xgb_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+            <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_runs</span><span class="p">):</span>
+                <span class="n">_</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">predict</span><span class="p">(</span><span class="n">np_batch</span><span class="p">)</span>
+            <span class="n">xgb_total_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">xgb_start</span>
+            <span class="n">xgb_latency_ms</span> <span class="o">=</span> <span class="p">(</span><span class="n">xgb_total_time</span> <span class="o">/</span> <span class="n">n_runs</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span>
+            <span class="n">xgb_ips</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">n_runs</span><span class="p">)</span> <span class="o">/</span> <span class="n">xgb_total_time</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[Baseline] Latency: </span><span class="si">{</span><span class="n">xgb_latency_ms</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> ms | Throughput: </span><span class="si">{</span><span class="n">xgb_ips</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2"> IPS&quot;</span><span class="p">)</span>
+
+            <span class="c1"># --- JAX Execution with OOM Protection ---</span>
+            <span class="k">try</span><span class="p">:</span>
+                <span class="c1"># Cold Start</span>
+                <span class="n">comp_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+                <span class="n">_</span> <span class="o">=</span> <span class="n">kernel_fn</span><span class="p">(</span><span class="n">jax_batch</span><span class="p">)</span><span class="o">.</span><span class="n">block_until_ready</span><span class="p">()</span>
+                <span class="n">comp_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">comp_start</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Compilation Time: </span><span class="si">{</span><span class="n">comp_time</span><span class="si">:</span><span class="s2">.3f</span><span class="si">}</span><span class="s2"> s&quot;</span><span class="p">)</span>
+
+                <span class="c1"># Warm Start</span>
+                <span class="n">jax_start</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span>
+                <span class="k">for</span> <span class="n">_</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">n_runs</span><span class="p">):</span>
+                    <span class="n">_</span> <span class="o">=</span> <span class="n">kernel_fn</span><span class="p">(</span><span class="n">jax_batch</span><span class="p">)</span><span class="o">.</span><span class="n">block_until_ready</span><span class="p">()</span>
+                <span class="n">jax_total_time</span> <span class="o">=</span> <span class="n">time</span><span class="o">.</span><span class="n">perf_counter</span><span class="p">()</span> <span class="o">-</span> <span class="n">jax_start</span>
+
+                <span class="n">jax_latency_ms</span> <span class="o">=</span> <span class="p">(</span><span class="n">jax_total_time</span> <span class="o">/</span> <span class="n">n_runs</span><span class="p">)</span> <span class="o">*</span> <span class="mi">1000</span>
+                <span class="n">jax_ips</span> <span class="o">=</span> <span class="p">(</span><span class="n">batch_size</span> <span class="o">*</span> <span class="n">n_runs</span><span class="p">)</span> <span class="o">/</span> <span class="n">jax_total_time</span>
+                <span class="n">speedup</span> <span class="o">=</span> <span class="n">jax_ips</span> <span class="o">/</span> <span class="n">xgb_ips</span>
+
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;[JAX] Latency: </span><span class="si">{</span><span class="n">jax_latency_ms</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2"> ms | Throughput: </span><span class="si">{</span><span class="n">jax_ips</span><span class="si">:</span><span class="s2">,.0f</span><span class="si">}</span><span class="s2"> IPS&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;VERDICT: </span><span class="si">{</span><span class="n">speedup</span><span class="si">:</span><span class="s2">.2f</span><span class="si">}</span><span class="s2">x faster than XGBoost&quot;</span><span class="p">)</span>
+                <span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;SUCCESS&quot;</span>
+
+            <span class="k">except</span> <span class="ne">Exception</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+                <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;XLA COMPILER OR HARDWARE FAILED! (Likely OOM)&quot;</span><span class="p">)</span>
+                <span class="nb">print</span><span class="p">(</span><span class="nb">str</span><span class="p">(</span><span class="n">e</span><span class="p">)</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s1">&#39;</span><span class="se">\n</span><span class="s1">&#39;</span><span class="p">)[</span><span class="mi">0</span><span class="p">])</span> <span class="c1"># Print just the first line of the error</span>
+                <span class="n">comp_time</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">jax_latency_ms</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">jax_ips</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">speedup</span> <span class="o">=</span> <span class="mf">0.0</span>
+                <span class="n">status</span> <span class="o">=</span> <span class="s2">&quot;OOM/FAILED&quot;</span>
+
+            <span class="c1"># Log to CSV</span>
+            <span class="n">log_data</span> <span class="o">=</span> <span class="p">{</span>
+                <span class="s2">&quot;Hardware&quot;</span><span class="p">:</span> <span class="n">hardware_name</span><span class="p">,</span>
+                <span class="s2">&quot;Method&quot;</span><span class="p">:</span> <span class="n">method_name</span><span class="p">,</span>
+                <span class="s2">&quot;Batch_Size&quot;</span><span class="p">:</span> <span class="n">batch_size</span><span class="p">,</span>
+                <span class="s2">&quot;Status&quot;</span><span class="p">:</span> <span class="n">status</span><span class="p">,</span>
+                <span class="s2">&quot;Compilation_Time_sec&quot;</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">comp_time</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+                <span class="s2">&quot;XGBoost_Latency_ms&quot;</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">xgb_latency_ms</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+                <span class="s2">&quot;XGBoost_IPS&quot;</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">xgb_ips</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="s2">&quot;JAX_Latency_ms&quot;</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">jax_latency_ms</span><span class="p">,</span> <span class="mi">3</span><span class="p">),</span>
+                <span class="s2">&quot;JAX_IPS&quot;</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">jax_ips</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+                <span class="s2">&quot;Speedup_Multiplier&quot;</span><span class="p">:</span> <span class="nb">round</span><span class="p">(</span><span class="n">speedup</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+            <span class="p">}</span>
+            <span class="n">log_to_csv</span><span class="p">(</span><span class="n">log_file</span><span class="p">,</span> <span class="n">log_data</span><span class="p">)</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Saved to CSV.&quot;</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h2 id="benchmarks.run_all_benchmarks.set_global_seed" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">set_global_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span></code>
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Set global random seed for full experiment reproducibility.</p>
+<p>This function ensures deterministic behavior across:
+- Python's built-in random module
+- NumPy random number generation
+- Hash-based operations via environment variables</p>
+
+
+<details class="note" open>
+  <summary>Note</summary>
+  <p>JAX operations are already deterministic for pure functions,
+but setting NumPy and Python seeds ensures identical data
+preparation and batching across runs.</p>
+</details>
+
+<p><span class="doc-section-title">Parameters:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Name</th>
+          <th>Type</th>
+          <th>Description</th>
+          <th>Default</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                <code>seed</code>
+            </td>
+            <td>
+                  <code><span title="int">int</span></code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Random seed value to enforce reproducibility.</p>
+              </div>
+            </td>
+            <td>
+                <em>required</em>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>None</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>benchmarks/run_all_benchmarks.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span>
+<span class="normal">24</span>
+<span class="normal">25</span>
+<span class="normal">26</span>
+<span class="normal">27</span>
+<span class="normal">28</span>
+<span class="normal">29</span>
+<span class="normal">30</span>
+<span class="normal">31</span>
+<span class="normal">32</span>
+<span class="normal">33</span>
+<span class="normal">34</span>
+<span class="normal">35</span>
+<span class="normal">36</span>
+<span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">set_global_seed</span><span class="p">(</span><span class="n">seed</span><span class="p">:</span> <span class="nb">int</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Set global random seed for full experiment reproducibility.</span>
+
+<span class="sd">    This function ensures deterministic behavior across:</span>
+<span class="sd">    - Python&#39;s built-in random module</span>
+<span class="sd">    - NumPy random number generation</span>
+<span class="sd">    - Hash-based operations via environment variables</span>
+
+<span class="sd">    Note:</span>
+<span class="sd">        JAX operations are already deterministic for pure functions,</span>
+<span class="sd">        but setting NumPy and Python seeds ensures identical data</span>
+<span class="sd">        preparation and batching across runs.</span>
+
+<span class="sd">    Args:</span>
+<span class="sd">        seed (int):</span>
+<span class="sd">            Random seed value to enforce reproducibility.</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        None</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">np</span><span class="o">.</span><span class="n">random</span><span class="o">.</span><span class="n">seed</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+    <span class="n">os</span><span class="o">.</span><span class="n">environ</span><span class="p">[</span><span class="s1">&#39;PYTHONHASHSEED&#39;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">str</span><span class="p">(</span><span class="n">seed</span><span class="p">)</span>
+    <span class="c1"># JAX is deterministic by default for pure functions, but locking NumPy ensures </span>
+    <span class="c1"># the data tiling and memory layout is perfectly identical on every run.</span>
+    <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Global Seed set to: </span><span class="si">{</span><span class="n">seed</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": [], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>

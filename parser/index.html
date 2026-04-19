@@ -1,0 +1,2412 @@
+
+<!doctype html>
+<html lang="en" class="no-js">
+  <head>
+    
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width,initial-scale=1">
+      
+        <meta name="description" content="GPU/TPU-optimized tree inference using JAX">
+      
+      
+      
+      
+        <link rel="prev" href="..">
+      
+      
+        <link rel="next" href="../kernels/">
+      
+      
+        
+      
+      
+      <link rel="icon" href="../assets/images/favicon.png">
+      <meta name="generator" content="mkdocs-1.6.1, mkdocs-material-9.7.6">
+    
+    
+      
+        <title>Parser - JAX Tree Compiler</title>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/stylesheets/main.484c7ddc.min.css">
+      
+      
+
+
+    
+    
+      
+    
+    
+      
+        
+        
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+        <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Roboto:300,300i,400,400i,700,700i%7CRoboto+Mono:400,400i,700,700i&display=fallback">
+        <style>:root{--md-text-font:"Roboto";--md-code-font:"Roboto Mono"}</style>
+      
+    
+    
+      <link rel="stylesheet" href="../assets/_mkdocstrings.css">
+    
+    <script>__md_scope=new URL("..",location),__md_hash=e=>[...e].reduce(((e,_)=>(e<<5)-e+_.charCodeAt(0)),0),__md_get=(e,_=localStorage,t=__md_scope)=>JSON.parse(_.getItem(t.pathname+"."+e)),__md_set=(e,_,t=localStorage,a=__md_scope)=>{try{t.setItem(a.pathname+"."+e,JSON.stringify(_))}catch(e){}}</script>
+    
+      
+
+    
+    
+  </head>
+  
+  
+    <body dir="ltr">
+  
+    
+    <input class="md-toggle" data-md-toggle="drawer" type="checkbox" id="__drawer" autocomplete="off">
+    <input class="md-toggle" data-md-toggle="search" type="checkbox" id="__search" autocomplete="off">
+    <label class="md-overlay" for="__drawer"></label>
+    <div data-md-component="skip">
+      
+        
+        <a href="#parser" class="md-skip">
+          Skip to content
+        </a>
+      
+    </div>
+    <div data-md-component="announce">
+      
+    </div>
+    
+    
+      
+
+  
+
+<header class="md-header md-header--shadow" data-md-component="header">
+  <nav class="md-header__inner md-grid" aria-label="Header">
+    <a href=".." title="JAX Tree Compiler" class="md-header__button md-logo" aria-label="JAX Tree Compiler" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    <label class="md-header__button md-icon" for="__drawer">
+      
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+    </label>
+    <div class="md-header__title" data-md-component="header-title">
+      <div class="md-header__ellipsis">
+        <div class="md-header__topic">
+          <span class="md-ellipsis">
+            JAX Tree Compiler
+          </span>
+        </div>
+        <div class="md-header__topic" data-md-component="header-topic">
+          <span class="md-ellipsis">
+            
+              Parser
+            
+          </span>
+        </div>
+      </div>
+    </div>
+    
+    
+      <script>var palette=__md_get("__palette");if(palette&&palette.color){if("(prefers-color-scheme)"===palette.color.media){var media=matchMedia("(prefers-color-scheme: light)"),input=document.querySelector(media.matches?"[data-md-color-media='(prefers-color-scheme: light)']":"[data-md-color-media='(prefers-color-scheme: dark)']");palette.color.media=input.getAttribute("data-md-color-media"),palette.color.scheme=input.getAttribute("data-md-color-scheme"),palette.color.primary=input.getAttribute("data-md-color-primary"),palette.color.accent=input.getAttribute("data-md-color-accent")}for(var[key,value]of Object.entries(palette.color))document.body.setAttribute("data-md-color-"+key,value)}</script>
+    
+    
+    
+      
+      
+        <label class="md-header__button md-icon" for="__search">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        </label>
+        <div class="md-search" data-md-component="search" role="dialog">
+  <label class="md-search__overlay" for="__search"></label>
+  <div class="md-search__inner" role="search">
+    <form class="md-search__form" name="search">
+      <input type="text" class="md-search__input" name="query" aria-label="Search" placeholder="Search" autocapitalize="off" autocorrect="off" autocomplete="off" spellcheck="false" data-md-component="search-query" required>
+      <label class="md-search__icon md-icon" for="__search">
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M9.5 3A6.5 6.5 0 0 1 16 9.5c0 1.61-.59 3.09-1.56 4.23l.27.27h.79l5 5-1.5 1.5-5-5v-.79l-.27-.27A6.52 6.52 0 0 1 9.5 16 6.5 6.5 0 0 1 3 9.5 6.5 6.5 0 0 1 9.5 3m0 2C7 5 5 7 5 9.5S7 14 9.5 14 14 12 14 9.5 12 5 9.5 5"/></svg>
+        
+        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M20 11v2H8l5.5 5.5-1.42 1.42L4.16 12l7.92-7.92L13.5 5.5 8 11z"/></svg>
+      </label>
+      <nav class="md-search__options" aria-label="Search">
+        
+        <button type="reset" class="md-search__icon md-icon" title="Clear" aria-label="Clear" tabindex="-1">
+          
+          <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M19 6.41 17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+        </button>
+      </nav>
+      
+    </form>
+    <div class="md-search__output">
+      <div class="md-search__scrollwrap" tabindex="0" data-md-scrollfix>
+        <div class="md-search-result" data-md-component="search-result">
+          <div class="md-search-result__meta">
+            Initializing search
+          </div>
+          <ol class="md-search-result__list" role="presentation"></ol>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+      
+    
+    
+  </nav>
+  
+</header>
+    
+    <div class="md-container" data-md-component="container">
+      
+      
+        
+          
+        
+      
+      <main class="md-main" data-md-component="main">
+        <div class="md-main__inner md-grid">
+          
+            
+              
+              <div class="md-sidebar md-sidebar--primary" data-md-component="sidebar" data-md-type="navigation" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+
+
+<nav class="md-nav md-nav--primary" aria-label="Navigation" data-md-level="0">
+  <label class="md-nav__title" for="__drawer">
+    <a href=".." title="JAX Tree Compiler" class="md-nav__button md-logo" aria-label="JAX Tree Compiler" data-md-component="logo">
+      
+  
+  <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24"><path d="M12 8a3 3 0 0 0 3-3 3 3 0 0 0-3-3 3 3 0 0 0-3 3 3 3 0 0 0 3 3m0 3.54C9.64 9.35 6.5 8 3 8v11c3.5 0 6.64 1.35 9 3.54 2.36-2.19 5.5-3.54 9-3.54V8c-3.5 0-6.64 1.35-9 3.54"/></svg>
+
+    </a>
+    JAX Tree Compiler
+  </label>
+  
+  <ul class="md-nav__list" data-md-scrollfix>
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href=".." class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Home
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+    
+  
+  
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parser
+  
+
+    
+  </span>
+  
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Parser
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#api-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compiler.parser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        parser
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="parser">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compiler.parser--design-rationale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design Rationale
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compiler.parser.TreeParser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TreeParser
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="TreeParser">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compiler.parser.TreeParser.__init__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        __init__
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compiler.parser.TreeParser.get_metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_metadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compiler.parser.TreeParser.parse" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        parse
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compiler.parser.TreeParser.parse_2d_arrays" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        parse_2d_arrays
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compiler.parser.TreeParser.preallocate_arrays" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        preallocate_arrays
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compiler.soft_sigmoid_parser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        soft_sigmoid_parser
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compiler.soft_sigmoid_parser.SoftParser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SoftParser
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SoftParser">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compiler.soft_sigmoid_parser.SoftParser.__init__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        __init__
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compiler.soft_sigmoid_parser.SoftParser.build_dense_path_matrices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        build_dense_path_matrices
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compiler.laplacian_parser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        laplacian_parser
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compiler.laplacian_parser.LaplacianParser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LaplacianParser
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="LaplacianParser">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compiler.laplacian_parser.LaplacianParser.get_graph_topology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_graph_topology
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compiler.laplacian_parser.LaplacianParser.get_routing_matrices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_routing_matrices
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../kernels/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Kernels
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../evaluation/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Evaluation
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../training/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Training
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+      
+      
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../benchmarking/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Benchmarking
+  
+
+    
+  </span>
+  
+  
+
+      </a>
+    </li>
+  
+
+    
+  </ul>
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+            
+              
+              <div class="md-sidebar md-sidebar--secondary" data-md-component="sidebar" data-md-type="toc" >
+                <div class="md-sidebar__scrollwrap">
+                  <div class="md-sidebar__inner">
+                    
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#api-reference" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        API Reference
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compiler.parser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        parser
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="parser">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compiler.parser--design-rationale" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Design Rationale
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compiler.parser.TreeParser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        TreeParser
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="TreeParser">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compiler.parser.TreeParser.__init__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        __init__
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compiler.parser.TreeParser.get_metadata" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_metadata
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compiler.parser.TreeParser.parse" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        parse
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compiler.parser.TreeParser.parse_2d_arrays" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        parse_2d_arrays
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compiler.parser.TreeParser.preallocate_arrays" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        preallocate_arrays
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compiler.soft_sigmoid_parser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        soft_sigmoid_parser
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compiler.soft_sigmoid_parser.SoftParser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        SoftParser
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="SoftParser">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compiler.soft_sigmoid_parser.SoftParser.__init__" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        __init__
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compiler.soft_sigmoid_parser.SoftParser.build_dense_path_matrices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        build_dense_path_matrices
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compiler.laplacian_parser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        laplacian_parser
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#compiler.laplacian_parser.LaplacianParser" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        LaplacianParser
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="LaplacianParser">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#compiler.laplacian_parser.LaplacianParser.get_graph_topology" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_graph_topology
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#compiler.laplacian_parser.LaplacianParser.get_routing_matrices" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        get_routing_matrices
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+                  </div>
+                </div>
+              </div>
+            
+          
+          
+            <div class="md-content" data-md-component="content">
+              
+              <article class="md-content__inner md-typeset">
+                
+                  
+
+
+
+<h1 id="parser">Parser</h1>
+<p>This module handles parsing XGBoost JSON models and converting them into
+a padded tensor representation optimized for JAX.</p>
+<hr />
+<h2 id="api-reference">API Reference</h2>
+
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="compiler.parser"></a>
+    <div class="doc doc-contents first">
+
+        <p>parser.py</p>
+<p>This module parses a trained XGBoost model (JSON format) and converts it into
+a padded, level-wise 2D tensor representation suitable for JAX execution.</p>
+<h3 id="compiler.parser--design-rationale">Design Rationale</h3>
+<p>The tree is transformed into fixed-shape arrays to make it compatible with
+JAX's JIT compilation and accelerator (GPU/TPU) execution.</p>
+<p>Key benefits of this representation:</p>
+<ol>
+<li>
+<p>Coalesced Memory Access
+   When executing on a GPU, all features corresponding to the same node index
+   across multiple trees are stored contiguously in memory. This allows the GPU
+   to fetch them in a single memory transaction, significantly improving memory
+   bandwidth utilization.</p>
+</li>
+<li>
+<p>Predictable Indexing
+   Tree traversal is replaced by direct indexing into arrays. For example, to
+   access the left child of node <code>j</code> in tree <code>i</code>, the kernel simply reads:</p>
+<p>lefts[i, j]</p>
+</li>
+</ol>
+<p>This avoids pointer chasing and eliminates the need for complex offset
+   computations, making execution faster and more hardware-friendly.</p>
+<ol>
+<li>Neutral Padding
+   Trees are padded to a uniform shape using sentinel values (e.g., -1).
+   These act as stopping conditions during computation and ensure that all
+   operations can be performed using fixed-size tensors without dynamic control
+   flow.</li>
+</ol>
+<p>Overall, this representation converts tree traversal into a static tensor
+computation graph, enabling efficient JAX JIT compilation and parallel execution.</p>
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="compiler.parser.TreeParser" class="doc doc-heading">
+            <code>TreeParser</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+
+        <p>A class to parse the trained XGBoost model JSON file and extract the necessary data for JAX processing.</p>
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>src/compiler/parser.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span>
+<span class="normal">106</span>
+<span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span>
+<span class="normal">123</span>
+<span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">TreeParser</span><span class="p">:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;A class to parse the trained XGBoost model JSON file and extract the necessary data for JAX processing.&quot;&quot;&quot;</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trained_model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Initialize the TreeParser with the path to the trained XGBoost model JSON file.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trained_model_path</span> <span class="o">=</span> <span class="n">trained_model_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_tree_data</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="c1"># check if the provided path is valid and contains a valid JSON</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">valid_model_json</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_valid_json</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trees_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_tree_data</span><span class="p">[</span><span class="s1">&#39;learner&#39;</span><span class="p">][</span><span class="s1">&#39;gradient_booster&#39;</span><span class="p">][</span><span class="s1">&#39;model&#39;</span><span class="p">][</span><span class="s1">&#39;trees&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid_model_json</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_trees</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trees_data</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">trees_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_node_num</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">[</span><span class="s1">&#39;left_children&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">trees_data</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">trees_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_is_valid_json</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the provided path is valid and contains a valid JSON file.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trained_model_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model_tree_data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid JSON error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File not found error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">preallocate_arrays</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; preallocate array size that will hold the data for each tree</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: arrays with tree data. padding for default values has been done with -1 and for threshold as 0.0</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># features</span>
+        <span class="n">features</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">num_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_node_num</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="c1"># left children</span>
+        <span class="n">left_children</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">num_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_node_num</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="c1"># right children</span>
+        <span class="n">right_children</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">num_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_node_num</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="c1"># thresholds</span>
+        <span class="n">thresholds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">num_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_node_num</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">features</span><span class="p">,</span> <span class="n">left_children</span><span class="p">,</span> <span class="n">right_children</span><span class="p">,</span> <span class="n">thresholds</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">parse_2d_arrays</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Parse the tree data and store it in 2D arrays for JAX processing.&quot;&quot;&quot;</span>
+        <span class="c1"># arrays to hold the data we need for JAX processing</span>
+        <span class="c1"># we need to loop over each tree, compute the nodes and edges, and store them in a format suitable for JAX processing</span>
+        <span class="n">features</span><span class="p">,</span> <span class="n">left_children</span><span class="p">,</span> <span class="n">right_children</span><span class="p">,</span> <span class="n">thresholds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preallocate_arrays</span><span class="p">()</span>
+
+        <span class="k">for</span> <span class="n">tree_id</span><span class="p">,</span> <span class="n">tree</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trees_data</span><span class="p">):</span>
+            <span class="n">tree_num_nodes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="s1">&#39;left_children&#39;</span><span class="p">])</span>
+            <span class="n">features</span><span class="p">[</span><span class="n">tree_id</span><span class="p">,</span> <span class="p">:</span><span class="n">tree_num_nodes</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="s1">&#39;split_indices&#39;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="n">left_children</span><span class="p">[</span><span class="n">tree_id</span><span class="p">,</span> <span class="p">:</span><span class="n">tree_num_nodes</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="s1">&#39;left_children&#39;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="n">right_children</span><span class="p">[</span><span class="n">tree_id</span><span class="p">,</span> <span class="p">:</span><span class="n">tree_num_nodes</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="s1">&#39;right_children&#39;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+            <span class="n">thresholds</span><span class="p">[</span><span class="n">tree_id</span><span class="p">,</span> <span class="p">:</span><span class="n">tree_num_nodes</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="s1">&#39;split_conditions&#39;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="c1"># conver to jax arrays</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">features</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">left_children</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">left_children</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">right_children</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">right_children</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thresholds</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">thresholds</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; parse function will provide the features, left and right children, threshold for all the trees in 2d format</span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict[str, jnp.ndarray]: dict holding key and the corresponding jax array holding data</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">parse_2d_arrays</span><span class="p">()</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s2">&quot;features&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="p">,</span>
+            <span class="s2">&quot;left_children&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">left_children</span><span class="p">,</span>
+            <span class="s2">&quot;right_children&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">right_children</span><span class="p">,</span>
+            <span class="s2">&quot;thresholds&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">thresholds</span><span class="p">,</span>
+            <span class="s2">&quot;max_nodes&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_node_num</span><span class="p">,</span>
+            <span class="s2">&quot;num_trees&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_trees</span><span class="p">,</span>
+        <span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; metadata base score </span>
+
+<span class="sd">        Returns:</span>
+<span class="sd">            Dict[str, float]: base score of the model</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">base_score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_tree_data</span><span class="p">[</span><span class="s1">&#39;learner&#39;</span><span class="p">][</span><span class="s1">&#39;learner_model_param&#39;</span><span class="p">][</span><span class="s1">&#39;base_score&#39;</span><span class="p">]</span>
+        <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">base_score</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+            <span class="n">base_score</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">base_score</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;base_score&quot;</span><span class="p">:</span> <span class="n">base_score</span><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="compiler.parser.TreeParser.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">trained_model_path</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Initialize the TreeParser with the path to the trained XGBoost model JSON file.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/compiler/parser.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trained_model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Initialize the TreeParser with the path to the trained XGBoost model JSON file.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">trained_model_path</span> <span class="o">=</span> <span class="n">trained_model_path</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">model_tree_data</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># check if the provided path is valid and contains a valid JSON</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">valid_model_json</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_valid_json</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">trees_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_tree_data</span><span class="p">[</span><span class="s1">&#39;learner&#39;</span><span class="p">][</span><span class="s1">&#39;gradient_booster&#39;</span><span class="p">][</span><span class="s1">&#39;model&#39;</span><span class="p">][</span><span class="s1">&#39;trees&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid_model_json</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">num_trees</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trees_data</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">trees_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">max_node_num</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">idx</span><span class="p">[</span><span class="s1">&#39;left_children&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">idx</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">trees_data</span><span class="p">)</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">trees_data</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="k">else</span> <span class="mi">0</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="compiler.parser.TreeParser.get_metadata" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_metadata</span><span class="p">()</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>metadata base score </p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Dict">Dict</span>[<span title="str">str</span>, <span title="float">float</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dict[str, float]: base score of the model</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/compiler/parser.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">124</span>
+<span class="normal">125</span>
+<span class="normal">126</span>
+<span class="normal">127</span>
+<span class="normal">128</span>
+<span class="normal">129</span>
+<span class="normal">130</span>
+<span class="normal">131</span>
+<span class="normal">132</span>
+<span class="normal">133</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_metadata</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="nb">float</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; metadata base score </span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict[str, float]: base score of the model</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">base_score</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_tree_data</span><span class="p">[</span><span class="s1">&#39;learner&#39;</span><span class="p">][</span><span class="s1">&#39;learner_model_param&#39;</span><span class="p">][</span><span class="s1">&#39;base_score&#39;</span><span class="p">]</span>
+    <span class="k">if</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">base_score</span><span class="p">,</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="n">base_score</span> <span class="o">=</span> <span class="n">ast</span><span class="o">.</span><span class="n">literal_eval</span><span class="p">(</span><span class="n">base_score</span><span class="p">)</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;base_score&quot;</span><span class="p">:</span> <span class="n">base_score</span><span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="compiler.parser.TreeParser.parse" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">parse</span><span class="p">()</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>parse function will provide the features, left and right children, threshold for all the trees in 2d format</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Dict">Dict</span>[<span title="str">str</span>, <span title="jax.numpy.ndarray">ndarray</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Dict[str, jnp.ndarray]: dict holding key and the corresponding jax array holding data</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/compiler/parser.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">107</span>
+<span class="normal">108</span>
+<span class="normal">109</span>
+<span class="normal">110</span>
+<span class="normal">111</span>
+<span class="normal">112</span>
+<span class="normal">113</span>
+<span class="normal">114</span>
+<span class="normal">115</span>
+<span class="normal">116</span>
+<span class="normal">117</span>
+<span class="normal">118</span>
+<span class="normal">119</span>
+<span class="normal">120</span>
+<span class="normal">121</span>
+<span class="normal">122</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">parse</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Dict</span><span class="p">[</span><span class="nb">str</span><span class="p">,</span> <span class="n">jnp</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; parse function will provide the features, left and right children, threshold for all the trees in 2d format</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Dict[str, jnp.ndarray]: dict holding key and the corresponding jax array holding data</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">parse_2d_arrays</span><span class="p">()</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s2">&quot;features&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="p">,</span>
+        <span class="s2">&quot;left_children&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">left_children</span><span class="p">,</span>
+        <span class="s2">&quot;right_children&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">right_children</span><span class="p">,</span>
+        <span class="s2">&quot;thresholds&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">thresholds</span><span class="p">,</span>
+        <span class="s2">&quot;max_nodes&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_node_num</span><span class="p">,</span>
+        <span class="s2">&quot;num_trees&quot;</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_trees</span><span class="p">,</span>
+    <span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="compiler.parser.TreeParser.parse_2d_arrays" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">parse_2d_arrays</span><span class="p">()</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Parse the tree data and store it in 2D arrays for JAX processing.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/compiler/parser.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span>
+<span class="normal">104</span>
+<span class="normal">105</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">parse_2d_arrays</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;Parse the tree data and store it in 2D arrays for JAX processing.&quot;&quot;&quot;</span>
+    <span class="c1"># arrays to hold the data we need for JAX processing</span>
+    <span class="c1"># we need to loop over each tree, compute the nodes and edges, and store them in a format suitable for JAX processing</span>
+    <span class="n">features</span><span class="p">,</span> <span class="n">left_children</span><span class="p">,</span> <span class="n">right_children</span><span class="p">,</span> <span class="n">thresholds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">preallocate_arrays</span><span class="p">()</span>
+
+    <span class="k">for</span> <span class="n">tree_id</span><span class="p">,</span> <span class="n">tree</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trees_data</span><span class="p">):</span>
+        <span class="n">tree_num_nodes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="s1">&#39;left_children&#39;</span><span class="p">])</span>
+        <span class="n">features</span><span class="p">[</span><span class="n">tree_id</span><span class="p">,</span> <span class="p">:</span><span class="n">tree_num_nodes</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="s1">&#39;split_indices&#39;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">left_children</span><span class="p">[</span><span class="n">tree_id</span><span class="p">,</span> <span class="p">:</span><span class="n">tree_num_nodes</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="s1">&#39;left_children&#39;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">right_children</span><span class="p">[</span><span class="n">tree_id</span><span class="p">,</span> <span class="p">:</span><span class="n">tree_num_nodes</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="s1">&#39;right_children&#39;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">thresholds</span><span class="p">[</span><span class="n">tree_id</span><span class="p">,</span> <span class="p">:</span><span class="n">tree_num_nodes</span><span class="p">]</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="s1">&#39;split_conditions&#39;</span><span class="p">],</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="c1"># conver to jax arrays</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">features</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">features</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">left_children</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">left_children</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">right_children</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">right_children</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">thresholds</span> <span class="o">=</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">thresholds</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="compiler.parser.TreeParser.preallocate_arrays" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">preallocate_arrays</span><span class="p">()</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>preallocate array size that will hold the data for each tree</p>
+
+
+    <p><span class="doc-section-title">Returns:</span></p>
+    <table>
+      <thead>
+        <tr>
+          <th>Type</th>
+          <th>Description</th>
+        </tr>
+      </thead>
+      <tbody>
+          <tr class="doc-section-item">
+            <td>
+                  <code><span title="typing.Tuple">Tuple</span>[<span title="numpy.ndarray">ndarray</span>, <span title="numpy.ndarray">ndarray</span>, <span title="numpy.ndarray">ndarray</span>, <span title="numpy.ndarray">ndarray</span>]</code>
+            </td>
+            <td>
+              <div class="doc-md-description">
+                <p>Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: arrays with tree data. padding for default values has been done with -1 and for threshold as 0.0</p>
+              </div>
+            </td>
+          </tr>
+      </tbody>
+    </table>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/compiler/parser.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">72</span>
+<span class="normal">73</span>
+<span class="normal">74</span>
+<span class="normal">75</span>
+<span class="normal">76</span>
+<span class="normal">77</span>
+<span class="normal">78</span>
+<span class="normal">79</span>
+<span class="normal">80</span>
+<span class="normal">81</span>
+<span class="normal">82</span>
+<span class="normal">83</span>
+<span class="normal">84</span>
+<span class="normal">85</span>
+<span class="normal">86</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">preallocate_arrays</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Tuple</span><span class="p">[</span><span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">,</span> <span class="n">np</span><span class="o">.</span><span class="n">ndarray</span><span class="p">]:</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; preallocate array size that will hold the data for each tree</span>
+
+<span class="sd">    Returns:</span>
+<span class="sd">        Tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]: arrays with tree data. padding for default values has been done with -1 and for threshold as 0.0</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># features</span>
+    <span class="n">features</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">num_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_node_num</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="c1"># left children</span>
+    <span class="n">left_children</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">num_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_node_num</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="c1"># right children</span>
+    <span class="n">right_children</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">num_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_node_num</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="c1"># thresholds</span>
+    <span class="n">thresholds</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">num_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_node_num</span><span class="p">),</span> <span class="mf">0.0</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">features</span><span class="p">,</span> <span class="n">left_children</span><span class="p">,</span> <span class="n">right_children</span><span class="p">,</span> <span class="n">thresholds</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="compiler.soft_sigmoid_parser"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="compiler.soft_sigmoid_parser.SoftParser" class="doc doc-heading">
+            <code>SoftParser</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>src/compiler/soft_sigmoid_parser.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">  7</span>
+<span class="normal">  8</span>
+<span class="normal">  9</span>
+<span class="normal"> 10</span>
+<span class="normal"> 11</span>
+<span class="normal"> 12</span>
+<span class="normal"> 13</span>
+<span class="normal"> 14</span>
+<span class="normal"> 15</span>
+<span class="normal"> 16</span>
+<span class="normal"> 17</span>
+<span class="normal"> 18</span>
+<span class="normal"> 19</span>
+<span class="normal"> 20</span>
+<span class="normal"> 21</span>
+<span class="normal"> 22</span>
+<span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">SoftParser</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trained_model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot; Initialize the SoftParser with the path to the trained XGBoost model JSON file.&quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trained_model_path</span> <span class="o">=</span> <span class="n">trained_model_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">model_tree_data</span> <span class="o">=</span> <span class="kc">None</span>
+        <span class="c1"># check if the provided path is valid and contains a valid JSON</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">valid_model_json</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_valid_json</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trees_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_tree_data</span><span class="p">[</span><span class="s1">&#39;learner&#39;</span><span class="p">][</span><span class="s1">&#39;gradient_booster&#39;</span><span class="p">][</span><span class="s1">&#39;model&#39;</span><span class="p">][</span><span class="s1">&#39;trees&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid_model_json</span> <span class="k">else</span> <span class="kc">None</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">num_features</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_tree_data</span><span class="p">[</span><span class="s1">&#39;learner&#39;</span><span class="p">][</span><span class="s1">&#39;gradient_booster&#39;</span><span class="p">][</span><span class="s1">&#39;model&#39;</span><span class="p">][</span><span class="s1">&#39;trees&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;tree_param&#39;</span><span class="p">][</span><span class="s1">&#39;num_feature&#39;</span><span class="p">])</span>
+        <span class="c1"># create tree parser and format to get 2d jax arrays</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">tree_parser</span> <span class="o">=</span> <span class="n">TreeParser</span><span class="p">(</span><span class="n">trained_model_path</span><span class="o">=</span><span class="n">trained_model_path</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">jax_2d_arrays</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tree_parser</span><span class="o">.</span><span class="n">parse</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">jax_2d_arrays</span><span class="p">[</span><span class="s1">&#39;features&#39;</span><span class="p">]</span>          <span class="c1"># Shape: [n_trees, max_nodes]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">thresholds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">jax_2d_arrays</span><span class="p">[</span><span class="s1">&#39;thresholds&#39;</span><span class="p">]</span>      <span class="c1"># Shape: [n_trees, max_nodes]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">left_children</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">jax_2d_arrays</span><span class="p">[</span><span class="s1">&#39;left_children&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">right_children</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">jax_2d_arrays</span><span class="p">[</span><span class="s1">&#39;right_children&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">shape</span>        
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_is_valid_json</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;Check if the provided path is valid and contains a valid JSON file.&quot;&quot;&quot;</span>
+        <span class="k">try</span><span class="p">:</span>
+            <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trained_model_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+                <span class="bp">self</span><span class="o">.</span><span class="n">model_tree_data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">True</span>
+        <span class="k">except</span> <span class="ne">ValueError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Invalid JSON error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span>
+        <span class="k">except</span> <span class="ne">FileNotFoundError</span> <span class="k">as</span> <span class="n">e</span><span class="p">:</span>
+            <span class="nb">print</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File not found error: </span><span class="si">{</span><span class="n">e</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+            <span class="k">return</span> <span class="kc">False</span> 
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">build_dense_path_matrices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Builds the Ancestor Matrix (A) and Leaf Weights array for Option B.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># binary tree, max leaves is (max_nodes + 1) // 2</span>
+        <span class="n">max_leaves</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+        <span class="c1"># A matrix: [trees, max_leaves, max_nodes]</span>
+        <span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">,</span> <span class="n">max_leaves</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="c1"># Leaf weights: [trees, max_leaves]</span>
+        <span class="n">leaf_weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">,</span> <span class="n">max_leaves</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">tree_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">):</span>
+            <span class="n">leaf_counter</span> <span class="o">=</span> <span class="mi">0</span>
+            <span class="c1"># helper function for Depth First Search</span>
+            <span class="k">def</span><span class="w"> </span><span class="nf">dfs</span><span class="p">(</span><span class="n">node_idx</span><span class="p">,</span> <span class="n">current_path</span><span class="p">):</span>
+                <span class="k">nonlocal</span> <span class="n">leaf_counter</span>
+                <span class="c1"># cehck if it&#39;s a leaf node (left child is -1)</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">left_children</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                    <span class="c1">#  found a leaf , add it weight</span>
+                    <span class="n">leaf_weights</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">leaf_counter</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">thresholds</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span>
+                    <span class="c1"># records its ancestor now</span>
+                    <span class="k">for</span> <span class="n">ancestor_node</span><span class="p">,</span> <span class="n">direction</span> <span class="ow">in</span> <span class="n">current_path</span><span class="p">:</span>
+                        <span class="n">A</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">leaf_counter</span><span class="p">,</span> <span class="n">ancestor_node</span><span class="p">]</span> <span class="o">=</span> <span class="n">direction</span>
+                    <span class="n">leaf_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="k">return</span>
+                <span class="c1"># if internal node found, traverse left (direction=1) and right (direction=2)</span>
+                <span class="n">left_child</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">left_children</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span>
+                <span class="n">right_child</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">right_children</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span>
+
+                <span class="n">dfs</span><span class="p">(</span><span class="n">left_child</span><span class="p">,</span> <span class="n">current_path</span> <span class="o">+</span> <span class="p">[(</span><span class="n">node_idx</span><span class="p">,</span> <span class="mi">1</span><span class="p">)])</span>
+                <span class="n">dfs</span><span class="p">(</span><span class="n">right_child</span><span class="p">,</span> <span class="n">current_path</span> <span class="o">+</span> <span class="p">[(</span><span class="n">node_idx</span><span class="p">,</span> <span class="mi">2</span><span class="p">)])</span>
+
+            <span class="c1"># Start DFS from the root (node 0) with an empty path</span>
+            <span class="n">dfs</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">[])</span>
+        <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">A</span><span class="p">),</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">leaf_weights</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">routing_matrices</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">method_type</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="s2">&quot;iterative&quot;</span><span class="p">):</span>
+        <span class="c1"># create empty matrices for dot product later</span>
+        <span class="n">W</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">num_features</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="n">threshold_mat</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">tree_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">node_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">):</span>
+                <span class="n">feat</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span>
+                <span class="c1"># a valid internal node (not a padded leaf)</span>
+                <span class="k">if</span> <span class="n">feat</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="bp">self</span><span class="o">.</span><span class="n">left_children</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                    <span class="c1"># we will place a 1 at the exact feature index for this node</span>
+                    <span class="n">W</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">,</span> <span class="n">feat</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+                    <span class="c1"># lets copy the equivalent threshold</span>
+                    <span class="n">threshold_mat</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">thresholds</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span>
+                <span class="k">else</span><span class="p">:</span>
+                    <span class="c1"># for leaf nodes, we store the leaf weight in the threshold array</span>
+                    <span class="n">threshold_mat</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">thresholds</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span>
+
+        <span class="c1"># teranspose here itself do we can do X @ W directly in jnp.dot</span>
+        <span class="n">W_transposed</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">W</span><span class="p">,</span> <span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">))</span>
+        <span class="n">routing_data</span> <span class="o">=</span> <span class="p">{</span>
+            <span class="s1">&#39;W&#39;</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">W_transposed</span><span class="p">),</span>
+            <span class="s1">&#39;tau&#39;</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">threshold_mat</span><span class="p">),</span>
+            <span class="s1">&#39;lefts&#39;</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">left_children</span><span class="p">),</span>
+            <span class="s1">&#39;rights&#39;</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">right_children</span><span class="p">),</span>
+            <span class="s1">&#39;thresholds&#39;</span><span class="p">:</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">thresholds</span><span class="p">),</span>
+        <span class="p">}</span>
+        <span class="k">if</span> <span class="n">method_type</span> <span class="o">==</span> <span class="s2">&quot;dense&quot;</span><span class="p">:</span>
+            <span class="n">A_matrix</span><span class="p">,</span> <span class="n">leaf_weights</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">build_dense_path_matrices</span><span class="p">()</span>
+            <span class="n">routing_data</span><span class="o">.</span><span class="n">update</span><span class="p">({</span><span class="s1">&#39;A&#39;</span><span class="p">:</span> <span class="n">A_matrix</span><span class="p">,</span> <span class="s1">&#39;leaf_wts&#39;</span><span class="p">:</span> <span class="n">leaf_weights</span><span class="p">})</span>
+        <span class="k">return</span> <span class="n">routing_data</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="compiler.soft_sigmoid_parser.SoftParser.__init__" class="doc doc-heading">
+            <code class="highlight language-python"><span class="fm">__init__</span><span class="p">(</span><span class="n">trained_model_path</span><span class="p">)</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Initialize the SoftParser with the path to the trained XGBoost model JSON file.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/compiler/soft_sigmoid_parser.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 8</span>
+<span class="normal"> 9</span>
+<span class="normal">10</span>
+<span class="normal">11</span>
+<span class="normal">12</span>
+<span class="normal">13</span>
+<span class="normal">14</span>
+<span class="normal">15</span>
+<span class="normal">16</span>
+<span class="normal">17</span>
+<span class="normal">18</span>
+<span class="normal">19</span>
+<span class="normal">20</span>
+<span class="normal">21</span>
+<span class="normal">22</span>
+<span class="normal">23</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trained_model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot; Initialize the SoftParser with the path to the trained XGBoost model JSON file.&quot;&quot;&quot;</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">trained_model_path</span> <span class="o">=</span> <span class="n">trained_model_path</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">model_tree_data</span> <span class="o">=</span> <span class="kc">None</span>
+    <span class="c1"># check if the provided path is valid and contains a valid JSON</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">valid_model_json</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_is_valid_json</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">trees_data</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_tree_data</span><span class="p">[</span><span class="s1">&#39;learner&#39;</span><span class="p">][</span><span class="s1">&#39;gradient_booster&#39;</span><span class="p">][</span><span class="s1">&#39;model&#39;</span><span class="p">][</span><span class="s1">&#39;trees&#39;</span><span class="p">]</span> <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">valid_model_json</span> <span class="k">else</span> <span class="kc">None</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">num_features</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">model_tree_data</span><span class="p">[</span><span class="s1">&#39;learner&#39;</span><span class="p">][</span><span class="s1">&#39;gradient_booster&#39;</span><span class="p">][</span><span class="s1">&#39;model&#39;</span><span class="p">][</span><span class="s1">&#39;trees&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">][</span><span class="s1">&#39;tree_param&#39;</span><span class="p">][</span><span class="s1">&#39;num_feature&#39;</span><span class="p">])</span>
+    <span class="c1"># create tree parser and format to get 2d jax arrays</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">tree_parser</span> <span class="o">=</span> <span class="n">TreeParser</span><span class="p">(</span><span class="n">trained_model_path</span><span class="o">=</span><span class="n">trained_model_path</span><span class="p">)</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">jax_2d_arrays</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">tree_parser</span><span class="o">.</span><span class="n">parse</span><span class="p">()</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">jax_2d_arrays</span><span class="p">[</span><span class="s1">&#39;features&#39;</span><span class="p">]</span>          <span class="c1"># Shape: [n_trees, max_nodes]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">thresholds</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">jax_2d_arrays</span><span class="p">[</span><span class="s1">&#39;thresholds&#39;</span><span class="p">]</span>      <span class="c1"># Shape: [n_trees, max_nodes]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">left_children</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">jax_2d_arrays</span><span class="p">[</span><span class="s1">&#39;left_children&#39;</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">right_children</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">jax_2d_arrays</span><span class="p">[</span><span class="s1">&#39;right_children&#39;</span><span class="p">]</span>
+    <span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">features</span><span class="o">.</span><span class="n">shape</span>        
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="compiler.soft_sigmoid_parser.SoftParser.build_dense_path_matrices" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">build_dense_path_matrices</span><span class="p">()</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Builds the Ancestor Matrix (A) and Leaf Weights array for Option B.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/compiler/soft_sigmoid_parser.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span>
+<span class="normal">51</span>
+<span class="normal">52</span>
+<span class="normal">53</span>
+<span class="normal">54</span>
+<span class="normal">55</span>
+<span class="normal">56</span>
+<span class="normal">57</span>
+<span class="normal">58</span>
+<span class="normal">59</span>
+<span class="normal">60</span>
+<span class="normal">61</span>
+<span class="normal">62</span>
+<span class="normal">63</span>
+<span class="normal">64</span>
+<span class="normal">65</span>
+<span class="normal">66</span>
+<span class="normal">67</span>
+<span class="normal">68</span>
+<span class="normal">69</span>
+<span class="normal">70</span>
+<span class="normal">71</span>
+<span class="normal">72</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">build_dense_path_matrices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Builds the Ancestor Matrix (A) and Leaf Weights array for Option B.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># binary tree, max leaves is (max_nodes + 1) // 2</span>
+    <span class="n">max_leaves</span> <span class="o">=</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span> <span class="o">+</span> <span class="mi">1</span><span class="p">)</span> <span class="o">//</span> <span class="mi">2</span>
+    <span class="c1"># A matrix: [trees, max_leaves, max_nodes]</span>
+    <span class="n">A</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">,</span> <span class="n">max_leaves</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="c1"># Leaf weights: [trees, max_leaves]</span>
+    <span class="n">leaf_weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">,</span> <span class="n">max_leaves</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">tree_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">):</span>
+        <span class="n">leaf_counter</span> <span class="o">=</span> <span class="mi">0</span>
+        <span class="c1"># helper function for Depth First Search</span>
+        <span class="k">def</span><span class="w"> </span><span class="nf">dfs</span><span class="p">(</span><span class="n">node_idx</span><span class="p">,</span> <span class="n">current_path</span><span class="p">):</span>
+            <span class="k">nonlocal</span> <span class="n">leaf_counter</span>
+            <span class="c1"># cehck if it&#39;s a leaf node (left child is -1)</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">left_children</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="c1">#  found a leaf , add it weight</span>
+                <span class="n">leaf_weights</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">leaf_counter</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">thresholds</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span>
+                <span class="c1"># records its ancestor now</span>
+                <span class="k">for</span> <span class="n">ancestor_node</span><span class="p">,</span> <span class="n">direction</span> <span class="ow">in</span> <span class="n">current_path</span><span class="p">:</span>
+                    <span class="n">A</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">leaf_counter</span><span class="p">,</span> <span class="n">ancestor_node</span><span class="p">]</span> <span class="o">=</span> <span class="n">direction</span>
+                <span class="n">leaf_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">return</span>
+            <span class="c1"># if internal node found, traverse left (direction=1) and right (direction=2)</span>
+            <span class="n">left_child</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">left_children</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span>
+            <span class="n">right_child</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">right_children</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span>
+
+            <span class="n">dfs</span><span class="p">(</span><span class="n">left_child</span><span class="p">,</span> <span class="n">current_path</span> <span class="o">+</span> <span class="p">[(</span><span class="n">node_idx</span><span class="p">,</span> <span class="mi">1</span><span class="p">)])</span>
+            <span class="n">dfs</span><span class="p">(</span><span class="n">right_child</span><span class="p">,</span> <span class="n">current_path</span> <span class="o">+</span> <span class="p">[(</span><span class="n">node_idx</span><span class="p">,</span> <span class="mi">2</span><span class="p">)])</span>
+
+        <span class="c1"># Start DFS from the root (node 0) with an empty path</span>
+        <span class="n">dfs</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="p">[])</span>
+    <span class="k">return</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">A</span><span class="p">),</span> <span class="n">jnp</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">leaf_weights</span><span class="p">)</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-module">
+
+
+
+<a id="compiler.laplacian_parser"></a>
+    <div class="doc doc-contents first">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-class">
+
+
+
+<h2 id="compiler.laplacian_parser.LaplacianParser" class="doc doc-heading">
+            <code>LaplacianParser</code>
+
+
+</h2>
+
+
+    <div class="doc doc-contents ">
+
+
+
+
+
+
+
+
+
+
+              <details class="mkdocstrings-source">
+                <summary>Source code in <code>src/compiler/laplacian_parser.py</code></summary>
+                <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">  4</span>
+<span class="normal">  5</span>
+<span class="normal">  6</span>
+<span class="normal">  7</span>
+<span class="normal">  8</span>
+<span class="normal">  9</span>
+<span class="normal"> 10</span>
+<span class="normal"> 11</span>
+<span class="normal"> 12</span>
+<span class="normal"> 13</span>
+<span class="normal"> 14</span>
+<span class="normal"> 15</span>
+<span class="normal"> 16</span>
+<span class="normal"> 17</span>
+<span class="normal"> 18</span>
+<span class="normal"> 19</span>
+<span class="normal"> 20</span>
+<span class="normal"> 21</span>
+<span class="normal"> 22</span>
+<span class="normal"> 23</span>
+<span class="normal"> 24</span>
+<span class="normal"> 25</span>
+<span class="normal"> 26</span>
+<span class="normal"> 27</span>
+<span class="normal"> 28</span>
+<span class="normal"> 29</span>
+<span class="normal"> 30</span>
+<span class="normal"> 31</span>
+<span class="normal"> 32</span>
+<span class="normal"> 33</span>
+<span class="normal"> 34</span>
+<span class="normal"> 35</span>
+<span class="normal"> 36</span>
+<span class="normal"> 37</span>
+<span class="normal"> 38</span>
+<span class="normal"> 39</span>
+<span class="normal"> 40</span>
+<span class="normal"> 41</span>
+<span class="normal"> 42</span>
+<span class="normal"> 43</span>
+<span class="normal"> 44</span>
+<span class="normal"> 45</span>
+<span class="normal"> 46</span>
+<span class="normal"> 47</span>
+<span class="normal"> 48</span>
+<span class="normal"> 49</span>
+<span class="normal"> 50</span>
+<span class="normal"> 51</span>
+<span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">class</span><span class="w"> </span><span class="nc">LaplacianParser</span><span class="p">:</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">trained_model_path</span><span class="p">:</span> <span class="nb">str</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">trained_model_path</span> <span class="o">=</span> <span class="n">trained_model_path</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_load_model</span><span class="p">()</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">_extract_topology</span><span class="p">()</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_load_model</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trained_model_path</span><span class="p">,</span> <span class="s1">&#39;r&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">f</span><span class="p">:</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">model_data</span> <span class="o">=</span> <span class="n">json</span><span class="o">.</span><span class="n">load</span><span class="p">(</span><span class="n">f</span><span class="p">)</span>
+
+        <span class="bp">self</span><span class="o">.</span><span class="n">trees</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_data</span><span class="p">[</span><span class="s1">&#39;learner&#39;</span><span class="p">][</span><span class="s1">&#39;gradient_booster&#39;</span><span class="p">][</span><span class="s1">&#39;model&#39;</span><span class="p">][</span><span class="s1">&#39;trees&#39;</span><span class="p">]</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trees</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">n_features</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">model_data</span><span class="p">[</span><span class="s1">&#39;learner&#39;</span><span class="p">][</span><span class="s1">&#39;learner_model_param&#39;</span><span class="p">][</span><span class="s1">&#39;num_feature&#39;</span><span class="p">]</span>
+
+        <span class="c1"># Find the maximum number of nodes across all trees to pad our matrices uniformly</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span> <span class="o">=</span> <span class="nb">max</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="s1">&#39;left_children&#39;</span><span class="p">])</span> <span class="k">for</span> <span class="n">tree</span> <span class="ow">in</span> <span class="bp">self</span><span class="o">.</span><span class="n">trees</span><span class="p">)</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">_extract_topology</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Extracts the raw tree arrays and pads them to max_nodes.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">left_children</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">right_children</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">full</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">),</span> <span class="o">-</span><span class="mi">1</span><span class="p">,</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">split_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">split_conditions</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">tree</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">trees</span><span class="p">):</span>
+            <span class="n">n_nodes</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">tree</span><span class="p">[</span><span class="s1">&#39;left_children&#39;</span><span class="p">])</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">left_children</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">n_nodes</span><span class="p">]</span> <span class="o">=</span> <span class="n">tree</span><span class="p">[</span><span class="s1">&#39;left_children&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">right_children</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">n_nodes</span><span class="p">]</span> <span class="o">=</span> <span class="n">tree</span><span class="p">[</span><span class="s1">&#39;right_children&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">split_indices</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">n_nodes</span><span class="p">]</span> <span class="o">=</span> <span class="n">tree</span><span class="p">[</span><span class="s1">&#39;split_indices&#39;</span><span class="p">]</span>
+            <span class="bp">self</span><span class="o">.</span><span class="n">split_conditions</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="p">:</span><span class="n">n_nodes</span><span class="p">]</span> <span class="o">=</span> <span class="n">tree</span><span class="p">[</span><span class="s1">&#39;split_conditions&#39;</span><span class="p">]</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_routing_matrices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Builds the Phase 2 components: W (Routing) and tau (Thresholds).</span>
+<span class="sd">        We still need these to convert the input data X into probabilities.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="n">W</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_features</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+        <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">):</span>
+            <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">):</span>
+                <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">left_children</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>  <span class="c1"># Internal node</span>
+                    <span class="n">feat_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_indices</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+                    <span class="n">W</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">feat_idx</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+        <span class="n">W_transposed</span> <span class="o">=</span> <span class="n">W</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># Shape: [trees, features, nodes]</span>
+        <span class="k">return</span> <span class="n">W_transposed</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_conditions</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">get_graph_topology</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">        </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">        Builds the Adjacency structures for Phase 3 (Laplacian Inference).</span>
+<span class="sd">        Returns the data needed to build both Dense and CSR matrices.</span>
+<span class="sd">        &quot;&quot;&quot;</span>
+        <span class="c1"># 1. The Dense Adjacency Template: Shape [trees, nodes, nodes]</span>
+        <span class="c1"># We use 1 to mark a Left edge, and 2 to mark a Right edge.</span>
+        <span class="n">dense_A_template</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+        <span class="c1"># 2. The CSR Topology arrays (Batched across trees)</span>
+        <span class="c1"># Max out-edges per tree is 2 * (max_nodes - 1)</span>
+        <span class="n">max_edges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span> <span class="o">*</span> <span class="mi">2</span> 
+        <span class="n">csr_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">,</span> <span class="n">max_edges</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+        <span class="n">csr_indptr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+        <span class="c1"># 3. Leaf Weights (To extract the final signal)</span>
+        <span class="n">leaf_weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+        <span class="k">for</span> <span class="n">tree_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">):</span>
+            <span class="n">edge_counter</span> <span class="o">=</span> <span class="mi">0</span>
+
+            <span class="k">for</span> <span class="n">node_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">):</span>
+                <span class="c1"># Set the row pointer for the current node</span>
+                <span class="n">csr_indptr</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">edge_counter</span>
+
+                <span class="n">left</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">left_children</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span>
+                <span class="n">right</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">right_children</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span>
+
+                <span class="k">if</span> <span class="n">left</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">right</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                    <span class="c1"># Internal Node: Mark the edges</span>
+                    <span class="n">dense_A_template</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">,</span> <span class="n">left</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                    <span class="n">dense_A_template</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">,</span> <span class="n">right</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+
+                    <span class="c1"># Add to CSR arrays</span>
+                    <span class="n">csr_indices</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">edge_counter</span><span class="p">]</span> <span class="o">=</span> <span class="n">left</span>
+                    <span class="n">edge_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+                    <span class="n">csr_indices</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">edge_counter</span><span class="p">]</span> <span class="o">=</span> <span class="n">right</span>
+                    <span class="n">edge_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="k">elif</span> <span class="n">left</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                    <span class="c1"># Leaf Node: Capture the weight (split_conditions stores leaf weights for leaves)</span>
+                    <span class="n">leaf_weights</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_conditions</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span>
+
+            <span class="c1"># Cap the final row pointer</span>
+            <span class="n">csr_indptr</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">]</span> <span class="o">=</span> <span class="n">edge_counter</span>
+
+        <span class="k">return</span> <span class="p">{</span>
+            <span class="s1">&#39;dense_A_template&#39;</span><span class="p">:</span> <span class="n">dense_A_template</span><span class="p">,</span>
+            <span class="s1">&#39;csr_indices&#39;</span><span class="p">:</span> <span class="n">csr_indices</span><span class="p">,</span>
+            <span class="s1">&#39;csr_indptr&#39;</span><span class="p">:</span> <span class="n">csr_indptr</span><span class="p">,</span>
+            <span class="s1">&#39;leaf_weights&#39;</span><span class="p">:</span> <span class="n">leaf_weights</span><span class="p">,</span>
+            <span class="s1">&#39;is_leaf_mask&#39;</span><span class="p">:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">left_children</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+        <span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+              </details>
+
+
+
+<div class="doc doc-children">
+
+
+
+
+
+
+
+
+
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="compiler.laplacian_parser.LaplacianParser.get_graph_topology" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_graph_topology</span><span class="p">()</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Builds the Adjacency structures for Phase 3 (Laplacian Inference).
+Returns the data needed to build both Dense and CSR matrices.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/compiler/laplacian_parser.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal"> 52</span>
+<span class="normal"> 53</span>
+<span class="normal"> 54</span>
+<span class="normal"> 55</span>
+<span class="normal"> 56</span>
+<span class="normal"> 57</span>
+<span class="normal"> 58</span>
+<span class="normal"> 59</span>
+<span class="normal"> 60</span>
+<span class="normal"> 61</span>
+<span class="normal"> 62</span>
+<span class="normal"> 63</span>
+<span class="normal"> 64</span>
+<span class="normal"> 65</span>
+<span class="normal"> 66</span>
+<span class="normal"> 67</span>
+<span class="normal"> 68</span>
+<span class="normal"> 69</span>
+<span class="normal"> 70</span>
+<span class="normal"> 71</span>
+<span class="normal"> 72</span>
+<span class="normal"> 73</span>
+<span class="normal"> 74</span>
+<span class="normal"> 75</span>
+<span class="normal"> 76</span>
+<span class="normal"> 77</span>
+<span class="normal"> 78</span>
+<span class="normal"> 79</span>
+<span class="normal"> 80</span>
+<span class="normal"> 81</span>
+<span class="normal"> 82</span>
+<span class="normal"> 83</span>
+<span class="normal"> 84</span>
+<span class="normal"> 85</span>
+<span class="normal"> 86</span>
+<span class="normal"> 87</span>
+<span class="normal"> 88</span>
+<span class="normal"> 89</span>
+<span class="normal"> 90</span>
+<span class="normal"> 91</span>
+<span class="normal"> 92</span>
+<span class="normal"> 93</span>
+<span class="normal"> 94</span>
+<span class="normal"> 95</span>
+<span class="normal"> 96</span>
+<span class="normal"> 97</span>
+<span class="normal"> 98</span>
+<span class="normal"> 99</span>
+<span class="normal">100</span>
+<span class="normal">101</span>
+<span class="normal">102</span>
+<span class="normal">103</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_graph_topology</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Builds the Adjacency structures for Phase 3 (Laplacian Inference).</span>
+<span class="sd">    Returns the data needed to build both Dense and CSR matrices.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="c1"># 1. The Dense Adjacency Template: Shape [trees, nodes, nodes]</span>
+    <span class="c1"># We use 1 to mark a Left edge, and 2 to mark a Right edge.</span>
+    <span class="n">dense_A_template</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="c1"># 2. The CSR Topology arrays (Batched across trees)</span>
+    <span class="c1"># Max out-edges per tree is 2 * (max_nodes - 1)</span>
+    <span class="n">max_edges</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span> <span class="o">*</span> <span class="mi">2</span> 
+    <span class="n">csr_indices</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">,</span> <span class="n">max_edges</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+    <span class="n">csr_indptr</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span> <span class="o">+</span> <span class="mi">1</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">int32</span><span class="p">)</span>
+
+    <span class="c1"># 3. Leaf Weights (To extract the final signal)</span>
+    <span class="n">leaf_weights</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+
+    <span class="k">for</span> <span class="n">tree_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">):</span>
+        <span class="n">edge_counter</span> <span class="o">=</span> <span class="mi">0</span>
+
+        <span class="k">for</span> <span class="n">node_idx</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">):</span>
+            <span class="c1"># Set the row pointer for the current node</span>
+            <span class="n">csr_indptr</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span> <span class="o">=</span> <span class="n">edge_counter</span>
+
+            <span class="n">left</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">left_children</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span>
+            <span class="n">right</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">right_children</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span>
+
+            <span class="k">if</span> <span class="n">left</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span> <span class="ow">and</span> <span class="n">right</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># Internal Node: Mark the edges</span>
+                <span class="n">dense_A_template</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">,</span> <span class="n">left</span><span class="p">]</span> <span class="o">=</span> <span class="mi">1</span>
+                <span class="n">dense_A_template</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">,</span> <span class="n">right</span><span class="p">]</span> <span class="o">=</span> <span class="mi">2</span>
+
+                <span class="c1"># Add to CSR arrays</span>
+                <span class="n">csr_indices</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">edge_counter</span><span class="p">]</span> <span class="o">=</span> <span class="n">left</span>
+                <span class="n">edge_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+                <span class="n">csr_indices</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">edge_counter</span><span class="p">]</span> <span class="o">=</span> <span class="n">right</span>
+                <span class="n">edge_counter</span> <span class="o">+=</span> <span class="mi">1</span>
+            <span class="k">elif</span> <span class="n">left</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>
+                <span class="c1"># Leaf Node: Capture the weight (split_conditions stores leaf weights for leaves)</span>
+                <span class="n">leaf_weights</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_conditions</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="n">node_idx</span><span class="p">]</span>
+
+        <span class="c1"># Cap the final row pointer</span>
+        <span class="n">csr_indptr</span><span class="p">[</span><span class="n">tree_idx</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">]</span> <span class="o">=</span> <span class="n">edge_counter</span>
+
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;dense_A_template&#39;</span><span class="p">:</span> <span class="n">dense_A_template</span><span class="p">,</span>
+        <span class="s1">&#39;csr_indices&#39;</span><span class="p">:</span> <span class="n">csr_indices</span><span class="p">,</span>
+        <span class="s1">&#39;csr_indptr&#39;</span><span class="p">:</span> <span class="n">csr_indptr</span><span class="p">,</span>
+        <span class="s1">&#39;leaf_weights&#39;</span><span class="p">:</span> <span class="n">leaf_weights</span><span class="p">,</span>
+        <span class="s1">&#39;is_leaf_mask&#39;</span><span class="p">:</span> <span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">left_children</span> <span class="o">==</span> <span class="o">-</span><span class="mi">1</span><span class="p">)</span>
+    <span class="p">}</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+<div class="doc doc-object doc-function">
+
+
+<h3 id="compiler.laplacian_parser.LaplacianParser.get_routing_matrices" class="doc doc-heading">
+            <code class="highlight language-python"><span class="n">get_routing_matrices</span><span class="p">()</span></code>
+
+</h3>
+
+
+    <div class="doc doc-contents ">
+
+        <p>Builds the Phase 2 components: W (Routing) and tau (Thresholds).
+We still need these to convert the input data X into probabilities.</p>
+
+
+            <details class="mkdocstrings-source">
+              <summary>Source code in <code>src/compiler/laplacian_parser.py</code></summary>
+              <div class="highlight"><table class="highlighttable"><tr><td class="linenos"><div class="linenodiv"><pre><span></span><span class="normal">37</span>
+<span class="normal">38</span>
+<span class="normal">39</span>
+<span class="normal">40</span>
+<span class="normal">41</span>
+<span class="normal">42</span>
+<span class="normal">43</span>
+<span class="normal">44</span>
+<span class="normal">45</span>
+<span class="normal">46</span>
+<span class="normal">47</span>
+<span class="normal">48</span>
+<span class="normal">49</span>
+<span class="normal">50</span></pre></div></td><td class="code"><div><pre><span></span><code><span class="k">def</span><span class="w"> </span><span class="nf">get_routing_matrices</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+<span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+<span class="sd">    Builds the Phase 2 components: W (Routing) and tau (Thresholds).</span>
+<span class="sd">    We still need these to convert the input data X into probabilities.</span>
+<span class="sd">    &quot;&quot;&quot;</span>
+    <span class="n">W</span> <span class="o">=</span> <span class="n">np</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">,</span> <span class="nb">int</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_features</span><span class="p">)),</span> <span class="n">dtype</span><span class="o">=</span><span class="n">np</span><span class="o">.</span><span class="n">float32</span><span class="p">)</span>
+    <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">n_trees</span><span class="p">):</span>
+        <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">max_nodes</span><span class="p">):</span>
+            <span class="k">if</span> <span class="bp">self</span><span class="o">.</span><span class="n">left_children</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span> <span class="o">!=</span> <span class="o">-</span><span class="mi">1</span><span class="p">:</span>  <span class="c1"># Internal node</span>
+                <span class="n">feat_idx</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_indices</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">]</span>
+                <span class="n">W</span><span class="p">[</span><span class="n">i</span><span class="p">,</span> <span class="n">j</span><span class="p">,</span> <span class="n">feat_idx</span><span class="p">]</span> <span class="o">=</span> <span class="mf">1.0</span>
+
+    <span class="n">W_transposed</span> <span class="o">=</span> <span class="n">W</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span>  <span class="c1"># Shape: [trees, features, nodes]</span>
+    <span class="k">return</span> <span class="n">W_transposed</span><span class="p">,</span> <span class="bp">self</span><span class="o">.</span><span class="n">split_conditions</span>
+</code></pre></div></td></tr></table></div>
+            </details>
+    </div>
+
+</div>
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+  </div>
+
+    </div>
+
+</div>
+
+
+
+
+
+
+
+
+
+
+
+
+                
+              </article>
+            </div>
+          
+          
+<script>var target=document.getElementById(location.hash.slice(1));target&&target.name&&(target.checked=target.name.startsWith("__tabbed_"))</script>
+        </div>
+        
+      </main>
+      
+        <footer class="md-footer">
+  
+  <div class="md-footer-meta md-typeset">
+    <div class="md-footer-meta__inner md-grid">
+      <div class="md-copyright">
+  
+  
+    Made with
+    <a href="https://squidfunk.github.io/mkdocs-material/" target="_blank" rel="noopener">
+      Material for MkDocs
+    </a>
+  
+</div>
+      
+    </div>
+  </div>
+</footer>
+      
+    </div>
+    <div class="md-dialog" data-md-component="dialog">
+      <div class="md-dialog__inner md-typeset"></div>
+    </div>
+    
+    
+    
+      
+      
+      <script id="__config" type="application/json">{"annotate": null, "base": "..", "features": [], "search": "../assets/javascripts/workers/search.2c215733.min.js", "tags": null, "translations": {"clipboard.copied": "Copied to clipboard", "clipboard.copy": "Copy to clipboard", "search.result.more.one": "1 more on this page", "search.result.more.other": "# more on this page", "search.result.none": "No matching documents", "search.result.one": "1 matching document", "search.result.other": "# matching documents", "search.result.placeholder": "Type to start searching", "search.result.term.missing": "Missing", "select.version": "Select version"}, "version": null}</script>
+    
+    
+      <script src="../assets/javascripts/bundle.79ae519e.min.js"></script>
+      
+    
+  </body>
+</html>
