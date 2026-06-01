@@ -41,13 +41,11 @@ Refer notebook for quickstart under colab_notebooks
 ## Citation
 
 ```
-@misc{jaxgbdt2026,
-  author       = {Shruti Verma},
-  title        = {JAX-GBDT: A High-Performance XLA Compiler for Tree Ensembles},
-  year         = {2026},
-  publisher    = {GitHub},
-  journal      = {GitHub repository},
-  howpublished = {\url{[https://github.com/yourusername/jax-gbdt](https://github.com/luaGeeko/jax-gbdt)}},
-  note         = {Technical Research Report}
+@misc{verma2026jaxgbdt,
+  author = {Verma, Shruti},
+  title  = {JAX-GBDT: A High-Performance XLA Compiler for Tree Ensembles},
+  year   = {2026},
+  url    = {https://github.com/luaGeeko/jax-gbdt},
+  note   = {GitHub repository}
 }
 ```
